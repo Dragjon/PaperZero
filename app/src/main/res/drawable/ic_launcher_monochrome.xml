@@ -1,59 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Surprised Olaf in one colour, for themed icons: drawn in lines, his mouth the 0. -->
+<!-- The same in one colour, for themed icons: the zero, his hair and his carrot. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Smaller, and centred, so his twigs sit inside any mask. -->
-    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.84" android:scaleY="0.84" android:translateY="5.88">
-        <!-- His twigs. -->
+    <!-- Smaller, and down a little, so his hair and the zero sit in the middle of any mask. -->
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.88" android:scaleY="0.88" android:translateY="5.7">
+        <!-- His twig hair. -->
         <path
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="2.2"
+            android:strokeWidth="2.6"
             android:strokeLineCap="round"
             android:strokeLineJoin="round"
-            android:pathData="M54,24 L53.4,9 M53.6,14.5 L50,11 M53.5,12 L57,8.6" />
+            android:pathData="M54,25 L54,15 M54,19.5 L50.8,16.4 M54,18 L57.2,14.5" />
         <path
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="2.0"
+            android:strokeWidth="2.3"
             android:strokeLineCap="round"
             android:strokeLineJoin="round"
-            android:pathData="M48.5,25 L45.5,16.5 M46.6,19.6 L43.4,18.6" />
+            android:pathData="M47.5,26.5 L43.6,19 M45,22 L41.6,20.8" />
         <path
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="2.0"
+            android:strokeWidth="2.3"
             android:strokeLineCap="round"
             android:strokeLineJoin="round"
-            android:pathData="M59.5,25 L62.5,16.5 M61.4,19.6 L64.6,18.6" />
-        <!-- His head, drawn round. -->
+            android:pathData="M60.5,26.5 L64.4,19 M63,22 L66.4,20.8" />
+        <!-- The zero, in snow. -->
         <path
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="2.4"
+            android:strokeWidth="10"
             android:strokeLineCap="round"
             android:strokeLineJoin="round"
-            android:pathData="M54,21 C62.5,21 67,27.5 67.5,34 C67.8,37 70,38 73,39.5 C80,43 84,50 84,60 C84,74 72,85 54,85 C36,85 24,74 24,60 C24,50 28,43 35,39.5 C38,38 40.2,37 40.5,34 C41,27.5 45.5,21 54,21 Z" />
-        <!-- Brows. -->
+            android:pathData="M54,30 C66.5,30 72.5,41 72.5,55 C72.5,69 66.5,80 54,80 C41.5,80 35.5,69 35.5,55 C35.5,41 41.5,30 54,30 Z" />
+        <!-- His carrot: the zero's slash. -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M42.2,28.4 Q46.4,23.4 51.4,26.2 Q51.8,27.8 50.4,28 Q46.6,26.4 43.6,29.8 Q41.8,30 42.2,28.4 ZM65.8,28.4 Q61.6,23.4 56.6,26.2 Q56.2,27.8 57.6,28 Q61.4,26.4 64.4,29.8 Q66.2,30 65.8,28.4 Z" />
-        <!-- Eyes. -->
+            android:pathData="M38.5,73.5 Q37,71.2 39,69.6 L74,41.2 Q75.3,40.5 74.8,41.9 L41.8,74.8 Q40,76 38.5,73.5 Z" />
         <path
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="1.6"
+            android:strokeWidth="1.2"
             android:strokeLineCap="round"
             android:strokeLineJoin="round"
-            android:pathData="M46.5,36 m-6.2,0 a6.2,7.2 0,1 0,12.4 0 a6.2,7.2 0,1 0,-12.4 0 Z M61.5,36 m-6.2,0 a6.2,7.2 0,1 0,12.4 0 a6.2,7.2 0,1 0,-12.4 0 Z" />
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M47.2,36.4 m-3,0 a3,3.2 0,1 0,6 0 a3,3.2 0,1 0,-6 0 Z M60.8,36.4 m-3,0 a3,3.2 0,1 0,6 0 a3,3.2 0,1 0,-6 0 Z" />
-        <!-- The 0: his mouth. -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M54,52 C62,52 66,59 66,66.5 C66,74.5 61.5,80 54,80 C46.5,80 42,74.5 42,66.5 C42,59 46,52 54,52 Z" />
-        <!-- His carrot. -->
-        <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M51.5,44.6 Q52.2,42 55,42.4 L73.6,47.6 Q74.8,48.1 73.6,48.6 L55,50 Q52.2,50.2 51.5,47.6 Z" />
+            android:pathData="M47,64.5 L49.6,67.4 M55.5,57.5 L57.6,60 M63,51.4 L64.6,53.4" />
     </group>
 </vector>
