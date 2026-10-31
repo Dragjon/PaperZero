@@ -92,8 +92,10 @@ fun HomeScreen(
     onScroll: (Subject) -> Unit,
     onSaved: (SavedTab) -> Unit,
     onOpenSaved: (SavedTab, Int) -> Unit,
+    onStats: () -> Unit,
 ) {
     val progress by progresses.progress.collectAsState(initial = null)
+    val stats by progresses.stats.collectAsState(initial = null)
     val liked by progresses.liked.collectAsState(initial = emptyList())
     val commented by progresses.commented.collectAsState(initial = emptyList())
     val comments by progresses.comments.collectAsState(initial = emptyMap())
@@ -134,9 +136,10 @@ fun HomeScreen(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        subjects.forEach { s -> Story(s) { onScroll(s) } }
+                        subjects.forEach { s -> SubjectTheme(s, fill = false) { Story(s) { onScroll(s) } } }
                     }
                 }
+                item { Box(Modifier.padding(horizontal = 16.dp)) { StatsPeek(stats, onStats) } }
                 item { SectionHead(stringResource(R.string.liked), if (likedHere.isNotEmpty()) { { onSaved(SavedTab.Liked) } } else null) }
                 item {
                     if (likedHere.isEmpty()) {
@@ -183,7 +186,7 @@ fun HomeScreen(
                 item { SectionHead(stringResource(R.string.papers), null) }
                 items(subjects) { subject ->
                     Box(Modifier.padding(horizontal = 16.dp)) {
-                        SubjectCard(subject, progress?.subjects?.get(subject), onClick = { onSubject(subject) })
+                        SubjectTheme(subject, fill = false) { SubjectCard(subject, progress?.subjects?.get(subject), onClick = { onSubject(subject) }) }
                     }
                 }
                 val toFix = progress?.mistakes?.size ?: 0
@@ -225,10 +228,12 @@ fun HomeScreen(
                 Text(stringResource(R.string.doomscroll), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp))
                 Text(stringResource(R.string.doomscroll_description), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
                 subjects.forEach { subject ->
-                    SheetAction(subject.icon, subjectName(subject), null, onClick = {
-                        choosing = false
-                        onScroll(subject)
-                    })
+                    SubjectTheme(subject, fill = false) {
+                        SheetAction(subject.icon, subjectName(subject), null, onClick = {
+                            choosing = false
+                            onScroll(subject)
+                        })
+                    }
                 }
             }
         }
@@ -248,7 +253,7 @@ private fun Story(subject: Subject, onClick: () -> Unit) {
                 .clip(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Surface(shape = CircleShape, color = colors.surfaceContainerHigh, modifier = Modifier.fillMaxSize()) {
+            Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.fillMaxSize()) {
                 Box(contentAlignment = Alignment.Center) { Icon(subject.icon, contentDescription = null, modifier = Modifier.size(30.dp)) }
             }
         }
@@ -282,7 +287,12 @@ private fun SubjectCard(subject: Subject, progress: SubjectProgress?, onClick: (
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.size(48.dp)) {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(48.dp),
+                ) {
                     Box(contentAlignment = Alignment.Center) { Icon(subject.icon, contentDescription = null) }
                 }
                 Spacer(Modifier.width(16.dp))

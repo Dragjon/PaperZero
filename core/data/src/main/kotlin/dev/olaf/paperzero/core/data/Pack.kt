@@ -26,6 +26,11 @@ data class Question(
     val image: String,
     /** Asset path of a picture of its worked answer, if the paper's key has them. */
     val explain: String?,
+    /**
+     * The topics it covers, best first, as places in its science's [Pack.topics]: found by the
+     * words it shares with each chapter's notes, so now and then a neighbouring chapter's.
+     */
+    val topics: List<Int> = emptyList(),
 ) {
     val key: String get() = "$paperId/$number"
 }
@@ -53,6 +58,22 @@ class Pack(private val assets: AssetManager) {
         }
     }
 
+    /** Each science's topics, the chapters of its notes in their order. */
+    val topics: Map<Subject, List<String>> by lazy {
+        val json = runCatching { assets.open("$ROOT/index.json").bufferedReader().use { it.readText() } }.getOrNull()
+            ?: return@lazy emptyMap()
+        val all = JSONObject(json).optJSONObject("topics") ?: return@lazy emptyMap()
+        Subject.entries.associateWith { s ->
+            all.optJSONArray(s.name)?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()
+        }
+    }
+
+    /** [question]'s topics by name. */
+    fun topicNames(question: Question): List<String> {
+        val names = paper(question.paperId)?.let { topics[it.subject] }.orEmpty()
+        return question.topics.mapNotNull { names.getOrNull(it) }
+    }
+
     private val cache = HashMap<String, List<Question>>()
 
     fun paper(id: String): PaperInfo? = papers.firstOrNull { it.id == id }
@@ -69,6 +90,7 @@ class Pack(private val assets: AssetManager) {
                 answer = q.getString("answer")[0],
                 image = "$ROOT/$paperId/${q.getString("image")}",
                 explain = q.optString("explain").takeIf { it.isNotEmpty() }?.let { "$ROOT/$paperId/$it" },
+                topics = q.optJSONArray("topics")?.let { a -> (0 until a.length()).map { a.getInt(it) } }.orEmpty(),
             )
         }
     }
@@ -82,6 +104,8 @@ class Pack(private val assets: AssetManager) {
     }
 
     fun questions(subject: Subject): List<Question> = papers.filter { it.subject == subject }.flatMap { questions(it.id) }
+
+    fun subject(question: Question): Subject? = paper(question.paperId)?.subject
 
     private companion object {
         const val ROOT = "pack"

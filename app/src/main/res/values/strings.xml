@@ -82,4 +82,36 @@
     <string name="review">Review</string>
     <string name="practise_wrong">Practise the wrong ones</string>
     <string name="done">Done</string>
+
+    <string name="stats">Stats</string>
+    <string name="stats_peek_none">Time studied, streaks, and how you do by topic, once you start.</string>
+    <string name="stats_peek_week">%s this week</string>
+    <string name="stats_peek_right">%d%% right</string>
+    <plurals name="streak_days">
+        <item quantity="one">%d day streak</item>
+        <item quantity="other">%d day streak</item>
+    </plurals>
+    <string name="stats_studied">studied in all</string>
+    <plurals name="stats_streak">
+        <item quantity="one">day streak (best %d)</item>
+        <item quantity="other">days streak (best %d)</item>
+    </plurals>
+    <plurals name="stats_answered">
+        <item quantity="one">%d answer</item>
+        <item quantity="other">%d answers</item>
+    </plurals>
+    <plurals name="stats_fixed">
+        <item quantity="one">%d mistake put right: wrong once, since right twice running.</item>
+        <item quantity="other">%d mistakes put right: wrong once, since right twice running.</item>
+    </plurals>
+    <string name="stats_this_week">This week</string>
+    <string name="stats_by_science">By science</string>
+    <string name="stats_tried_of">%1$d of %2$d questions tried</string>
+    <string name="stats_weakest">Needs work</string>
+    <string name="stats_weakest_hint">Your least right topics, with 5 answers or more. Tap one to practise it.</string>
+    <string name="stats_strongest">Going well</string>
+    <string name="stats_by_topic">By topic</string>
+    <string name="stats_topics_note">Topics follow the BPGHS notes\' chapters. They\'re matched from each question\'s words, so now and then one is filed under a neighbouring chapter.</string>
+    <string name="stats_topic_line">%1$d answers · %2$d of %3$d questions tried</string>
+    <string name="stats_topic_untried">Not tried yet · %d questions</string>
 </resources>

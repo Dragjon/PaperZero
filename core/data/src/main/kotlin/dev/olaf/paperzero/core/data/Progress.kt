@@ -3,6 +3,8 @@ package dev.olaf.paperzero.core.data
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import java.time.Instant
+import java.time.ZoneId
 import kotlin.random.Random
 
 /** How a subject is going: questions tried at least once, and of those, right the last time. */
@@ -62,9 +64,9 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
     suspend fun startScroll(title: String): Long =
         dao.insert(SessionEntity(mode = Mode.Practice.name, paperId = null, title = title, keys = "", startedAt = now()))
 
-    /** [subject]'s questions in a fresh order: ones not yet tried first. */
-    fun feed(subject: Subject, tried: Set<String>, random: Random = Random.Default): List<Question> {
-        val all = pack.questions(subject)
+    /** [subject]'s questions (on [topic], if one) in a fresh order: ones not yet tried first. */
+    fun feed(subject: Subject, tried: Set<String>, topic: Int? = null, random: Random = Random.Default): List<Question> {
+        val all = pack.questions(subject).filter { topic == null || topic in it.topics }
         return all.filter { it.key !in tried }.shuffled(random) + all.filter { it.key in tried }.shuffled(random)
     }
 
@@ -84,6 +86,16 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
     }
 
     suspend fun addTime(sessionId: Long, ms: Long) = dao.addTime(sessionId, ms)
+
+    /** Counts [ms] more spent on [subject]'s questions today. */
+    suspend fun study(subject: Subject, ms: Long) =
+        dao.study(Instant.ofEpochMilli(now()).atZone(ZoneId.systemDefault()).toLocalDate().toString(), subject.name, ms)
+
+    /** Time spent, accuracy by science and topic, streaks: see [Stats]. */
+    val stats: Flow<Stats> = combine(dao.allAnswers(), dao.study()) { answers, study ->
+        val zone = ZoneId.systemDefault()
+        Stats.of(pack, answers, study, Instant.ofEpochMilli(now()).atZone(zone).toLocalDate(), zone)
+    }
 
     /** Marks the sitting: right answers out of its questions. */
     suspend fun finish(sessionId: Long): Best {

@@ -49,6 +49,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -78,14 +79,21 @@ import dev.olaf.paperzero.core.data.Question
 import dev.olaf.paperzero.core.data.Subject
 import dev.olaf.paperzero.core.design.LocalPaperExtras
 import dev.olaf.paperzero.core.design.ZoomBox
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-/** What a feed shows: a subject's questions without end, or a list (liked, commented) from one of them. */
+/**
+ * What a feed shows: a subject's questions without end (or only its [Of.topic]'s), or a list
+ * (liked, commented) from any of them.
+ */
 sealed interface FeedSource {
-    data class Of(val subject: Subject) : FeedSource
+    data class Of(val subject: Subject, val topic: Int? = null) : FeedSource
     data class Saved(val title: String, val keys: List<String>, val start: Int) : FeedSource
 }
 
@@ -95,9 +103,9 @@ sealed interface FeedSource {
  * gone by they come round again in a new order, ones not yet tried first.
  */
 @Composable
-fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: () -> Unit) {
+fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: () -> Unit, onTopic: (Subject, Int) -> Unit) {
     val title = when (source) {
-        is FeedSource.Of -> subjectName(source.subject)
+        is FeedSource.Of -> source.topic?.let { pack.topics[source.subject]?.getOrNull(it) } ?: subjectName(source.subject)
         is FeedSource.Saved -> source.title
     }
     var sessionId by remember { mutableLongStateOf(0L) }
@@ -115,7 +123,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     LaunchedEffect(source) {
         sessionId = progresses.startScroll(title)
         when (source) {
-            is FeedSource.Of -> feed += progresses.feed(source.subject, progresses.progress.first().tried)
+            is FeedSource.Of -> feed += progresses.feed(source.subject, progresses.progress.first().tried, source.topic)
             is FeedSource.Saved -> {
                 feed += source.keys.mapNotNull { pack.question(it) }
                 list.scrollToItem(source.start.coerceIn(0, (feed.size - 1).coerceAtLeast(0)))
@@ -126,8 +134,32 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     if (source is FeedSource.Of) {
         LaunchedEffect(list) {
             snapshotFlow { list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }.collect { last ->
-                if (feed.isNotEmpty() && last > feed.size - 4) feed += progresses.feed(source.subject, emptySet())
+                if (feed.isNotEmpty() && last > feed.size - 4) feed += progresses.feed(source.subject, emptySet(), source.topic)
             }
+        }
+    }
+
+    // Time studied, for the stats: a second at a time while the feed is open and in use, to the
+    // science of the post on screen. Left alone for IDLE_MS (no scrolling, no answer), it stops.
+    var touched by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(list) {
+        snapshotFlow { list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset }.collect { touched = System.currentTimeMillis() }
+    }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var running by remember { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, e ->
+            if (e == Lifecycle.Event.ON_RESUME) running = true
+            if (e == Lifecycle.Event.ON_PAUSE) running = false
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(running) {
+        while (running) {
+            delay(1000)
+            if (System.currentTimeMillis() - touched > IDLE_MS) continue
+            feed.getOrNull(list.firstVisibleItemIndex)?.let { pack.subject(it) }?.let { progresses.study(it, 1000) }
         }
     }
 
@@ -157,23 +189,30 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(feed, key = { i, q -> "$i/${q.key}" }) { i, question ->
+                    val subject = pack.paper(question.paperId)?.subject
+                    // A saved feed mixes the sciences: each post in its own colours.
+                    SubjectTheme(if (source is FeedSource.Saved) subject else null, fill = false) {
                     Post(
                         question = question,
                         source = pack.paper(question.paperId)?.let { progresses.title(it) } ?: "",
-                        subject = pack.paper(question.paperId)?.subject,
+                        subject = subject,
+                        topics = pack.topicNames(question).zip(question.topics),
                         mine = chosen[i],
                         liked = question.key in liked,
                         comments = comments[question.key].orEmpty(),
                         onZoom = { zoomed = it },
                         onLike = { scope.launch { progresses.setLiked(question.key, question.key !in liked) } },
                         onComments = { commenting = question },
+                        onTopic = { topic -> subject?.let { onTopic(it, topic) } },
                         onChoose = { letter ->
                             chosen[i] = letter
                             tried++
+                            touched = System.currentTimeMillis()
                             if (letter == question.answer) right++
                             scope.launch { progresses.answer(sessionId, question, letter) }
                         },
                     )
+                    }
                 }
             }
         }
@@ -190,18 +229,24 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     zoomed?.let { path -> Zoomed(path) { zoomed = null } }
 }
 
+/** Left this long without a scroll or an answer, a feed stops counting the time. */
+private const val IDLE_MS = 120_000L
+
 /** One question as a post. */
 @Composable
 private fun Post(
     question: Question,
     source: String,
     subject: Subject?,
+    /** Its topics' names, and their places in its science's list. */
+    topics: List<Pair<String, Int>>,
     mine: Char?,
     liked: Boolean,
     comments: List<CommentEntity>,
     onZoom: (String) -> Unit,
     onLike: () -> Unit,
     onComments: () -> Unit,
+    onTopic: (Int) -> Unit,
     onChoose: (Char) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -282,8 +327,21 @@ private fun Post(
                 }
             }
         }
-        // The caption: how it went, and a comment or two.
+        // The caption: its topics as tags, how it went, and a comment or two.
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (topics.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    topics.forEach { (name, topic) ->
+                        Text(
+                            "#" + name.replace(" ", "").replace(",", ""),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.primary,
+                            maxLines = 1,
+                            modifier = Modifier.clickable { onTopic(topic) },
+                        )
+                    }
+                }
+            }
             if (mine != null) {
                 val ok = mine == question.answer
                 Row(verticalAlignment = Alignment.CenterVertically) {

@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import dev.olaf.paperzero.R
 import dev.olaf.paperzero.core.data.Pack
 import dev.olaf.paperzero.core.data.Progresses
+import dev.olaf.paperzero.core.data.Subject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -94,9 +95,9 @@ fun Tile(path: String, modifier: Modifier = Modifier) {
 
 /** The feed of what's in [tab], from its [start]th: the list as it was on opening, so unliking one doesn't move the feed. */
 @Composable
-fun SavedFeedScreen(pack: Pack, progresses: Progresses, tab: SavedTab, start: Int, onClose: () -> Unit) {
+fun SavedFeedScreen(pack: Pack, progresses: Progresses, tab: SavedTab, start: Int, onClose: () -> Unit, onTopic: (Subject, Int) -> Unit) {
     val keys by produceState<List<String>?>(null, tab) { value = progresses.keys(tab).first().filter { pack.question(it) != null } }
     val title = stringResource(if (tab == SavedTab.Liked) R.string.liked else R.string.commented)
-    keys?.let { FeedScreen(pack, progresses, FeedSource.Saved(title, it, start), onClose) }
+    keys?.let { FeedScreen(pack, progresses, FeedSource.Saved(title, it, start), onClose, onTopic) }
         ?: Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
 }

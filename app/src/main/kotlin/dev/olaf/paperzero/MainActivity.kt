@@ -26,6 +26,21 @@ import dev.olaf.paperzero.ui.FeedSource
 import dev.olaf.paperzero.ui.SavedFeedScreen
 import dev.olaf.paperzero.ui.SavedScreen
 import dev.olaf.paperzero.ui.SavedTab
+import dev.olaf.paperzero.ui.StatsScreen
+import dev.olaf.paperzero.ui.SubjectTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+
+/** [content] in the colours of the science a sitting's questions are all from, if they are. */
+@Composable
+private fun SessionTheme(app: PaperZeroApplication, sessionId: Long, content: @Composable () -> Unit) {
+    val subject by produceState<Subject?>(null, sessionId) {
+        val keys = app.progresses.session(sessionId)?.keys?.split(',')?.filter { it.isNotEmpty() }.orEmpty()
+        value = keys.mapNotNull { app.pack.paper(it.substringBeforeLast('/'))?.subject }.distinct().singleOrNull()
+    }
+    SubjectTheme(subject, content = content)
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +51,7 @@ class MainActivity : ComponentActivity() {
             PaperTheme {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val nav = rememberNavController()
+                    val onTopic: (Subject, Int) -> Unit = { s, t -> nav.navigate("feed/${s.name}?topic=$t") }
                     NavHost(nav, startDestination = "home") {
                         composable("home") {
                             HomeScreen(
@@ -46,11 +62,24 @@ class MainActivity : ComponentActivity() {
                                 onScroll = { nav.navigate("feed/${it.name}") },
                                 onSaved = { nav.navigate("saved/${it.name}") },
                                 onOpenSaved = { tab, i -> nav.navigate("savedfeed/${tab.name}/$i") },
+                                onStats = { nav.navigate("stats") },
                             )
                         }
-                        composable("feed/{subject}", listOf(navArgument("subject") { type = NavType.StringType })) { entry ->
+                        composable("stats") {
+                            StatsScreen(app.progresses, onBack = { nav.popBackStack() }, onTopic = { s, t -> nav.navigate("feed/${s.name}?topic=$t") })
+                        }
+                        composable(
+                            "feed/{subject}?topic={topic}",
+                            listOf(
+                                navArgument("subject") { type = NavType.StringType },
+                                navArgument("topic") { type = NavType.IntType; defaultValue = -1 },
+                            ),
+                        ) { entry ->
                             val subject = Subject.valueOf(entry.arguments!!.getString("subject")!!)
-                            FeedScreen(app.pack, app.progresses, FeedSource.Of(subject), onClose = { nav.popBackStack() })
+                            val topic = entry.arguments!!.getInt("topic").takeIf { it >= 0 }
+                            SubjectTheme(subject) {
+                                FeedScreen(app.pack, app.progresses, FeedSource.Of(subject, topic), onClose = { nav.popBackStack() }, onTopic = onTopic)
+                            }
                         }
                         composable("saved/{tab}", listOf(navArgument("tab") { type = NavType.StringType })) { entry ->
                             SavedScreen(
@@ -71,16 +100,20 @@ class MainActivity : ComponentActivity() {
                                 SavedTab.valueOf(entry.arguments!!.getString("tab")!!),
                                 entry.arguments!!.getInt("start"),
                                 onClose = { nav.popBackStack() },
+                                onTopic = onTopic,
                             )
                         }
                         composable("papers/{subject}", listOf(navArgument("subject") { type = NavType.StringType })) { entry ->
-                            PapersScreen(
-                                app.pack,
-                                app.progresses,
-                                Subject.valueOf(entry.arguments!!.getString("subject")!!),
-                                onBack = { nav.popBackStack() },
-                                onStart = { nav.navigate("quiz/$it") },
-                            )
+                            val subject = Subject.valueOf(entry.arguments!!.getString("subject")!!)
+                            SubjectTheme(subject) {
+                                PapersScreen(
+                                    app.pack,
+                                    app.progresses,
+                                    subject,
+                                    onBack = { nav.popBackStack() },
+                                    onStart = { nav.navigate("quiz/$it") },
+                                )
+                            }
                         }
                         composable("mistakes") {
                             MistakesScreen(
@@ -92,36 +125,43 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("quiz/{session}", listOf(navArgument("session") { type = NavType.LongType })) { entry ->
                             val session = entry.arguments!!.getLong("session")
-                            QuizScreen(
-                                app.pack,
-                                app.progresses,
-                                session,
-                                onClose = { nav.popBackStack() },
-                                onFinished = {
-                                    nav.navigate("result/$session") { popUpTo("quiz/{session}") { inclusive = true } }
-                                },
-                            )
+                            SessionTheme(app, session) {
+                                QuizScreen(
+                                    app.pack,
+                                    app.progresses,
+                                    session,
+                                    onClose = { nav.popBackStack() },
+                                    onFinished = {
+                                        nav.navigate("result/$session") { popUpTo("quiz/{session}") { inclusive = true } }
+                                    },
+                                )
+                            }
                         }
                         composable("result/{session}", listOf(navArgument("session") { type = NavType.LongType })) { entry ->
                             val session = entry.arguments!!.getLong("session")
-                            ResultScreen(
-                                app.pack,
-                                app.progresses,
-                                session,
-                                onDone = { nav.popBackStack() },
-                                onReview = { nav.navigate("review/$session") },
-                                onStart = { nav.navigate("quiz/$it") { popUpTo("result/{session}") { inclusive = true } } },
-                            )
+                            SessionTheme(app, session) {
+                                ResultScreen(
+                                    app.pack,
+                                    app.progresses,
+                                    session,
+                                    onDone = { nav.popBackStack() },
+                                    onReview = { nav.navigate("review/$session") },
+                                    onStart = { nav.navigate("quiz/$it") { popUpTo("result/{session}") { inclusive = true } } },
+                                )
+                            }
                         }
                         composable("review/{session}", listOf(navArgument("session") { type = NavType.LongType })) { entry ->
-                            QuizScreen(
-                                app.pack,
-                                app.progresses,
-                                entry.arguments!!.getLong("session"),
-                                review = true,
-                                onClose = { nav.popBackStack() },
-                                onFinished = { nav.popBackStack() },
-                            )
+                            val session = entry.arguments!!.getLong("session")
+                            SessionTheme(app, session) {
+                                QuizScreen(
+                                    app.pack,
+                                    app.progresses,
+                                    session,
+                                    review = true,
+                                    onClose = { nav.popBackStack() },
+                                    onFinished = { nav.popBackStack() },
+                                )
+                            }
                         }
                     }
                 }

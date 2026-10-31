@@ -148,6 +148,7 @@ fun QuizScreen(
                 delay(1000)
                 spent += 1000
                 progresses.addTime(sessionId, 1000)
+                questions.getOrNull(index)?.let { pack.subject(it) }?.let { progresses.study(it, 1000) }
                 if (timed && spent >= EXAM_MS) {
                     progresses.finish(sessionId)
                     onFinished()

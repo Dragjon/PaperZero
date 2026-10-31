@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.Transaction
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +65,10 @@ data class CommentEntity(
     val text: String,
     val at: Long,
 )
+
+/** Time spent on a science's questions on a day (the phone's own day, "2026-10-31"). */
+@Entity(tableName = "study", primaryKeys = ["day", "subject"])
+data class StudyEntity(val day: String, val subject: String, val ms: Long)
 
 @Dao
 interface PaperDao {
@@ -121,9 +126,29 @@ interface PaperDao {
     /** Every comment, oldest first. */
     @Query("SELECT * FROM comments ORDER BY at")
     fun comments(): Flow<List<CommentEntity>>
+
+    @Query("INSERT OR IGNORE INTO study (day, subject, ms) VALUES (:day, :subject, 0)")
+    suspend fun startStudy(day: String, subject: String)
+
+    @Query("UPDATE study SET ms = ms + :ms WHERE day = :day AND subject = :subject")
+    suspend fun addStudy(day: String, subject: String, ms: Long)
+
+    @Transaction
+    suspend fun study(day: String, subject: String, ms: Long) {
+        startStudy(day, subject)
+        addStudy(day, subject, ms)
+    }
+
+    /** Time spent, every day and science, oldest first. */
+    @Query("SELECT * FROM study ORDER BY day")
+    fun study(): Flow<List<StudyEntity>>
 }
 
-@Database(entities = [SessionEntity::class, AnswerEntity::class, LikeEntity::class, CommentEntity::class], version = 2, exportSchema = true)
+@Database(
+    entities = [SessionEntity::class, AnswerEntity::class, LikeEntity::class, CommentEntity::class, StudyEntity::class],
+    version = 3,
+    exportSchema = true,
+)
 abstract class PaperDatabase : RoomDatabase() {
     abstract fun dao(): PaperDao
 
@@ -137,7 +162,14 @@ abstract class PaperDatabase : RoomDatabase() {
             }
         }
 
+        /** 3: time spent, by day and science. */
+        private val THREE = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `study` (`day` TEXT NOT NULL, `subject` TEXT NOT NULL, `ms` INTEGER NOT NULL, PRIMARY KEY(`day`, `subject`))")
+            }
+        }
+
         fun create(context: Context): PaperDatabase =
-            Room.databaseBuilder(context, PaperDatabase::class.java, "paperzero.db").addMigrations(TWO).build()
+            Room.databaseBuilder(context, PaperDatabase::class.java, "paperzero.db").addMigrations(TWO, THREE).build()
     }
 }
