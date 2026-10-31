@@ -98,6 +98,19 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
         return right
     }
 
+    /** Takes back the answer just given to [question] in [sessionId] (a slip of the finger): as if never given. */
+    suspend fun undo(sessionId: Long, question: Question) {
+        dao.lastAnswer(sessionId, question.key)?.let { dao.deleteAnswer(it.id) }
+    }
+
+    /**
+     * Forgets the last wrong answer to [key], a misclick found later: it no longer counts in the
+     * stats or as a mistake (unless it was got wrong before that too).
+     */
+    suspend fun forgetMistake(key: String) {
+        dao.lastWrong(key)?.let { dao.deleteAnswer(it.id) }
+    }
+
     suspend fun addTime(sessionId: Long, ms: Long) = dao.addTime(sessionId, ms)
 
     /** Counts [ms] more spent on [subject]'s questions today. */

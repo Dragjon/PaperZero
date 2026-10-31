@@ -69,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -293,6 +294,13 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                                             if (letter == question.answer) right++
                                             scope.launch { progresses.answer(sessionId, question, letter) }
                                         },
+                                        onUndo = {
+                                            chosen.remove(page.index)?.let { was ->
+                                                tried--
+                                                if (was == question.answer) right--
+                                                scope.launch { progresses.undo(sessionId, question) }
+                                            }
+                                        },
                                     )
                                 }
                             }
@@ -373,6 +381,8 @@ private fun QuestionPage(
     onShare: () -> Unit,
     onTopic: (Int) -> Unit,
     onChoose: (Char) -> Unit,
+    /** Takes back the answer given: a misclick, not to count. */
+    onUndo: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val success = LocalPaperExtras.current.success
@@ -464,6 +474,13 @@ private fun QuestionPage(
                         Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Close, contentDescription = null, tint = if (ok) success else colors.error, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(if (ok) stringResource(R.string.right) else stringResource(R.string.wrong_answer, question.answer), style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            stringResource(R.string.undo_misclick),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = InkSoft,
+                            modifier = Modifier.clip(CircleShape).clickable(onClick = onUndo).padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
                     }
                 }
                 comments.lastOrNull()?.let { last ->

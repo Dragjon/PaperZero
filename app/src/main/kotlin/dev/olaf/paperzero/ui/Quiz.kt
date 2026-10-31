@@ -209,7 +209,13 @@ fun QuizScreen(
             QuestionPicture(question.image, Modifier.clickable { zoomed = question.image })
             if (marked) {
                 Spacer(Modifier.height(16.dp))
-                Verdict(question, mine)
+                // In practice, a misclick can be taken back before it counts.
+                Verdict(question, mine, onUndo = if (!review && mine != null) {
+                    {
+                        chosen.remove(question.key)
+                        scope.launch { progresses.undo(sessionId, question) }
+                    }
+                } else null)
                 question.explain?.let { path ->
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.working), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
@@ -333,7 +339,7 @@ private fun QuestionPicture(path: String, modifier: Modifier = Modifier) {
 
 /** "Right", or "Not quite: it's C", under a marked question. */
 @Composable
-private fun Verdict(question: Question, mine: Char?) {
+private fun Verdict(question: Question, mine: Char?, onUndo: (() -> Unit)? = null) {
     val right = mine == question.answer
     val success = LocalPaperExtras.current.success
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
@@ -350,7 +356,12 @@ private fun Verdict(question: Question, mine: Char?) {
                 else -> stringResource(R.string.wrong_answer, question.answer)
             },
             style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f, fill = false),
         )
+        if (onUndo != null) {
+            Spacer(Modifier.width(8.dp))
+            TextButton(onClick = onUndo) { Text(stringResource(R.string.undo_misclick), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
     }
 }
 

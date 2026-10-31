@@ -197,4 +197,8 @@
     <string name="settings_github">PaperZero on GitHub</string>
     <string name="settings_github_description">The code, new releases, and where to report a problem</string>
     <string name="memes_unreachable">Memes can\'t load right now: no internet, or blocked on this network</string>
+    <string name="undo_misclick">Misclicked? Undo</string>
+    <string name="mistakes_each">Each mistake</string>
+    <string name="mistakes_each_hint">Tapped the wrong letter by accident? Remove it, and it won\'t count in your stats.</string>
+    <string name="mistake_remove">Remove</string>
 </resources>

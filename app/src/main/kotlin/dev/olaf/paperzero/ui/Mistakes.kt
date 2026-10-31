@@ -1,6 +1,15 @@
 package dev.olaf.paperzero.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,7 +50,7 @@ fun MistakesScreen(pack: Pack, progresses: Progresses, onBack: () -> Unit, onSta
     val title = stringResource(R.string.mistakes)
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxWidth()) {
+        Column(Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxWidth().fillMaxSize()) {
             TopBar(title, null, onBack)
             Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -55,6 +64,40 @@ fun MistakesScreen(pack: Pack, progresses: Progresses, onBack: () -> Unit, onSta
                     SheetAction(subject.icon, name, pluralStringResource(R.plurals.mistakes_to_fix, keys.size, keys.size), onClick = {
                         scope.launch { onStart(progresses.startMistakes(keys, "$title · $name")) }
                     })
+                }
+            }
+            // Each mistake, to take one off that was only a slip of the finger.
+            if (mistakes.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.mistakes_each),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp),
+                )
+                Text(
+                    stringResource(R.string.mistakes_each_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+                )
+                LazyColumn(
+                    Modifier.weight(1f),
+                    contentPadding = PaddingValues(start = 16.dp, end = 8.dp, bottom = 120.dp),
+                ) {
+                    items(mistakes, key = { it }) { key ->
+                        val q = pack.question(key) ?: return@items
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Tile(q.image, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                pack.paper(q.paperId)?.let { progresses.title(it) + " · Q" + q.number } ?: "",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { scope.launch { progresses.forgetMistake(key) } }) {
+                                Text(stringResource(R.string.mistake_remove), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             }
         }

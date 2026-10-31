@@ -104,6 +104,17 @@ interface PaperDao {
     @Query("SELECT * FROM answers WHERE sessionId = :sessionId ORDER BY at")
     suspend fun answers(sessionId: Long): List<AnswerEntity>
 
+    /** The answer given last to [key] in [sessionId], if any. */
+    @Query("SELECT * FROM answers WHERE sessionId = :sessionId AND questionKey = :key ORDER BY at DESC LIMIT 1")
+    suspend fun lastAnswer(sessionId: Long, key: String): AnswerEntity?
+
+    /** The last wrong answer ever given to [key], if any. */
+    @Query("SELECT * FROM answers WHERE questionKey = :key AND correct = 0 ORDER BY at DESC LIMIT 1")
+    suspend fun lastWrong(key: String): AnswerEntity?
+
+    @Query("DELETE FROM answers WHERE id = :id")
+    suspend fun deleteAnswer(id: Long)
+
     @Query("DELETE FROM answers WHERE sessionId = :sessionId")
     suspend fun deleteAnswers(sessionId: Long)
 
