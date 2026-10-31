@@ -148,15 +148,13 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("papers/{subject}", listOf(navArgument("subject") { type = NavType.StringType })) { entry ->
                             val subject = Subject.valueOf(entry.arguments!!.getString("subject")!!)
-                            SubjectTheme(subject) {
-                                PapersScreen(
-                                    app.pack,
-                                    app.progresses,
-                                    subject,
-                                    onBack = { nav.popBackStack() },
-                                    onStart = { nav.navigate("quiz/$it") },
-                                )
-                            }
+                            PapersScreen(
+                                app.pack,
+                                app.progresses,
+                                subject,
+                                onBack = { nav.popBackStack() },
+                                onStart = { nav.navigate("quiz/$it") },
+                            )
                         }
                         composable("mistakes") {
                             MistakesScreen(

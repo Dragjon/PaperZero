@@ -54,11 +54,21 @@ import kotlinx.coroutines.launch
 
 private enum class Source { All, OLevel, Schools }
 
-/** A subject's papers: the O-Level years, newest first, then the schools' prelims. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * A subject's papers: the O-Level years, newest first, then the schools' prelims. In the colours
+ * of the subject chosen, which change with it.
+ */
 @Composable
 fun PapersScreen(pack: Pack, progresses: Progresses, start: Subject, onBack: () -> Unit, onStart: (Long) -> Unit) {
     var subject by rememberSaveable { mutableStateOf(start) }
+    SubjectTheme(subject) {
+        Papers(pack, progresses, subject, onSubject = { subject = it }, onBack, onStart)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun Papers(pack: Pack, progresses: Progresses, subject: Subject, onSubject: (Subject) -> Unit, onBack: () -> Unit, onStart: (Long) -> Unit) {
     var source by rememberSaveable { mutableStateOf(Source.All) }
     var picked by remember { mutableStateOf<PaperInfo?>(null) }
     val progress by progresses.progress.collectAsState(initial = null)
@@ -75,7 +85,7 @@ fun PapersScreen(pack: Pack, progresses: Progresses, start: Subject, onBack: () 
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            subjects.forEach { s -> Chip(subjectName(s), s == subject) { subject = s } }
+            subjects.forEach { s -> Chip(subjectName(s), s == subject) { onSubject(s) } }
         }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
