@@ -165,6 +165,7 @@ private fun Link(icon: ImageVector, title: String, description: String, onClick:
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(16.dp))
         Label(title, description, Modifier.weight(1f))
+        Spacer(Modifier.width(16.dp))
         Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
 }

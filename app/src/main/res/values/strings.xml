@@ -55,7 +55,14 @@
     <string name="mode_exam">Exam</string>
     <string name="mode_exam_description">The whole paper in an hour, marked at the end</string>
     <string name="timed_set">Timed set</string>
-    <string name="timed_set_description">40 questions from across the papers in an hour, marked at the end</string>
+    <string name="timed_set_line">40 random questions from across the papers · 1 hour · marked at the end</string>
+    <string name="timed_set_unfinished">You have a set on the go: pick up where you left off</string>
+    <string name="timed_set_new">New set</string>
+    <string name="timed_set_continue">Continue</string>
+    <plurals name="timed_set_picking">
+        <item quantity="one">Picking 40 questions from %d paper…</item>
+        <item quantity="other">Picking 40 questions from %d papers…</item>
+    </plurals>
     <string name="timed_set_title">%s timed set</string>
 
     <string name="question_of">Question %1$d of %2$d</string>

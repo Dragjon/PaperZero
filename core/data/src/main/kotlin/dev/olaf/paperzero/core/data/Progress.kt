@@ -57,6 +57,9 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
         return dao.insert(SessionEntity(mode = mode.name, paperId = paperId, title = title(paper), keys = keys.joinToString(","), startedAt = now()))
     }
 
+    /** Whether a timed set called [title] was started and not finished. */
+    suspend fun hasUnfinishedTimed(title: String): Boolean = dao.unfinishedTimed(title) != null
+
     /**
      * A timed set of [subject]: [TIMED_QUESTIONS] questions from across its papers, sat like a
      * paper in Exam mode; an unfinished one ([title]) is carried on instead.

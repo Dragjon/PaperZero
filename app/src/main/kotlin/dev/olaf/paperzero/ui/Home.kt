@@ -1,5 +1,10 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -147,6 +152,11 @@ fun HomeScreen(
             item {
                 Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // The app's icon beside its name: the zero, on its dark ground.
+                        Box(Modifier.size(48.dp).clip(CircleShape).background(colorResource(R.color.icon_ground)), contentAlignment = Alignment.Center) {
+                            Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.requiredSize(72.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f))
                         IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.settings)) }
                     }
