@@ -196,4 +196,5 @@
     <string name="settings_about_title">About</string>
     <string name="settings_github">PaperZero on GitHub</string>
     <string name="settings_github_description">The code, new releases, and where to report a problem</string>
+    <string name="memes_unreachable">Memes can\'t load right now: no internet, or blocked on this network</string>
 </resources>

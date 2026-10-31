@@ -203,15 +203,26 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                 nextMeme += gap()
             }
         }
-        LaunchedEffect(memeAt.size, memes.size, misses) {
-            val here = when (val page = pages.getOrNull(pager.currentPage)) {
-                is Page.Ask -> page.index
-                is Page.Fun -> shown.entries.firstOrNull { it.value == page.number }?.key ?: 0
-                null -> 0
+        // Where the feed is, in questions: memes are fetched only for the slots a little ahead of it.
+        val here by remember {
+            derivedStateOf {
+                when (val page = pages.getOrNull(pager.currentPage)) {
+                    is Page.Ask -> page.index
+                    is Page.Fun -> shown.entries.firstOrNull { it.value == page.number }?.key ?: 0
+                    null -> 0
+                }
             }
-            memeAt.forEach { (at, k) -> if (at > here && at !in shown && k < memes.size) shown[at] = k }
-            // A few ahead of the feed; if the internet isn't there, the feed goes on without them.
-            if (misses >= MEME_MISSES || memes.size >= memeAt.size + 2) return@LaunchedEffect
+        }
+        LaunchedEffect(memeAt.size, memes.size, misses, here) {
+            // Each meme, as it comes, to the next free slot ahead (one passed while it loaded is
+            // skipped, not the meme).
+            var free = shown.size
+            memeAt.keys.sorted().forEach { at -> if (at > here && at !in shown && free < memes.size) shown[at] = free++ }
+            val wanted = shown.size + memeAt.keys.count { it > here && it <= here + MEME_AHEAD && it !in shown } + 1
+            if (memes.size >= wanted) return@LaunchedEffect
+            // Not there (offline, or blocked here): try again a little later, then less often; the
+            // feed goes on without them meanwhile.
+            if (misses > 0) delay((MEME_RETRY_MS shl (misses - 1).coerceAtMost(2)).coerceAtMost(MEME_RETRY_MAX_MS))
             val got = Memes.fetch((source as? FeedSource.Of)?.subject, memes.map { it.link }.toSet())
             if (got.isEmpty()) misses++ else { misses = 0; memes += got }
         }
@@ -290,6 +301,17 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                     }
                 }
             }
+            // Memes turned on but not loading: say so, rather than leave it a mystery.
+            if (settings.memes && misses >= MEME_TELL_AFTER) {
+                Surface(
+                    shape = CircleShape,
+                    color = Glass,
+                    contentColor = Ink,
+                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 60.dp, start = 24.dp, end = 24.dp),
+                ) {
+                    Text(stringResource(R.string.memes_unreachable), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+                }
+            }
             // Over it all, faded into the picture: close, the feed's name, how it's going.
             Row(
                 Modifier
@@ -319,8 +341,13 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     zoomed?.let { path -> Zoomed(path) { zoomed = null } }
 }
 
-/** Memes found none this many times running (offline, say): the feed goes on without them. */
-private const val MEME_MISSES = 3
+/** Memes are fetched for the slots up to this many questions ahead of the one on screen. */
+private const val MEME_AHEAD = 15
+/** After memes fail to load, the wait before trying again: doubling, up to the most. */
+private const val MEME_RETRY_MS = 10_000L
+private const val MEME_RETRY_MAX_MS = 60_000L
+/** Failed this many times running, the feed says so (once memes are turned on). */
+private const val MEME_TELL_AFTER = 2
 
 /** Left this long without a swipe or an answer, a feed stops counting the time. */
 private const val IDLE_MS = 120_000L
@@ -472,7 +499,8 @@ private fun QuestionPage(
                     shape = MaterialTheme.shapes.medium,
                     color = fill,
                     contentColor = ink,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    // A splash round it, if it's the one chosen and it's right.
+                    modifier = Modifier.weight(1f).height(48.dp).splash(mine == letter && letter == question.answer, success),
                 ) {
                     Box(contentAlignment = Alignment.Center) { Text(letter.toString(), style = MaterialTheme.typography.titleMedium) }
                 }

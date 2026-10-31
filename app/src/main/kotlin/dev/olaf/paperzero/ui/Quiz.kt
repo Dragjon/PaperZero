@@ -236,7 +236,8 @@ fun QuizScreen(
                         marked -> LetterState.Off
                         else -> LetterState.Open
                     }
-                    LetterButton(letter, state, Modifier.weight(1f)) {
+                    // A splash when it's chosen and right, in practice (not in review).
+                    LetterButton(letter, state, Modifier.weight(1f), splash = !review && !exam && mine == letter && letter == question.answer) {
                         if (review || (!exam && mine != null)) return@LetterButton
                         chosen[question.key] = letter
                         scope.launch { progresses.answer(sessionId, question, letter) }
@@ -356,7 +357,7 @@ private fun Verdict(question: Question, mine: Char?) {
 private enum class LetterState { Open, Chosen, Right, Wrong, Off }
 
 @Composable
-private fun LetterButton(letter: Char, state: LetterState, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun LetterButton(letter: Char, state: LetterState, modifier: Modifier = Modifier, splash: Boolean = false, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val success = LocalPaperExtras.current.success
     val interaction = remember { MutableInteractionSource() }
@@ -373,7 +374,7 @@ private fun LetterButton(letter: Char, state: LetterState, modifier: Modifier = 
         color = fill,
         contentColor = ink,
         interactionSource = interaction,
-        modifier = modifier.height(64.dp).pressScale(interaction),
+        modifier = modifier.height(64.dp).splash(splash, success).pressScale(interaction),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(letter.toString(), fontSize = 24.sp, fontWeight = FontWeight.SemiBold)

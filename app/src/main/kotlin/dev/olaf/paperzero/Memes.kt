@@ -1,6 +1,7 @@
 package dev.olaf.paperzero
 
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import dev.olaf.paperzero.core.data.Subject
@@ -31,9 +32,11 @@ class Meme(val title: String, val image: ImageBitmap, val source: String, val li
  * them, and pictures fetched a few at a time.
  */
 object Memes {
+    private const val TAG = "Memes"
     private const val REDDIT = "https://meme-api.com/gimme"
     private const val LEMMY = "https://lemmy.world/api/v3/post/list"
     private const val LEMMY_COMMUNITY = "science_memes@mander.xyz"
+    private const val LEMMY_HOST = "lemmy.world"
     /** Pages of it to choose from (50 posts a page; it has more, these are its best). */
     private const val LEMMY_PAGES = 90
     /** Pictures fetched at a time. */
@@ -41,7 +44,7 @@ object Memes {
     /** Wider than a phone needs: bigger pictures are decoded smaller. */
     private const val MAX_WIDTH = 1080
     private const val MAX_BYTES = 6 shl 20
-    private const val TIMEOUT_MS = 10_000
+    private const val TIMEOUT_MS = 6_000
     private val PICTURE = listOf(".jpg", ".jpeg", ".png", ".webp")
 
     private val general = listOf("sciencememes", "ScienceHumor", "nerdymemes")
@@ -52,7 +55,32 @@ object Memes {
         null -> listOf("geologymemes", "MicrobiologyMemes", "astronomymemes")
     } + general
 
-    private class Post(val title: String, val url: String, val source: String, val link: String)
+    /** A post: its picture's [url], and [copy], the same picture kept elsewhere if there is one. */
+    private class Post(val title: String, val url: String, val source: String, val link: String, val copy: String? = null)
+
+    /** Servers that didn't answer this time round: their pictures are taken from a copy instead. */
+    private val dead = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
+    private fun host(url: String?) = url?.let { runCatching { URL(it).host }.getOrNull() }
+
+    /** Where to get a post's picture, best first: lemmy.world's own copy (always up when the
+     *  posts came at all), then the original, never from a server that didn't answer. */
+    private fun sources(p: Post): List<String> =
+        listOfNotNull(p.copy?.takeIf { host(it) == LEMMY_HOST }, p.url, p.copy)
+            .distinct().filter { host(it) !in dead }
+
+    private fun fetchPicture(p: Post): ByteArray {
+        var last: Exception = java.io.IOException("no source")
+        for (url in sources(p)) {
+            try {
+                return get(url)
+            } catch (e: java.io.IOException) {
+                last = e
+                if (e is java.net.SocketTimeoutException || e is java.net.ConnectException || e is java.net.UnknownHostException) host(url)?.let { dead += it }
+            }
+        }
+        throw last
+    }
 
     /** Posts gathered and not yet shown, by subject; and the sources already drawn on. */
     private val pool = HashMap<Subject?, ArrayDeque<Post>>()
@@ -67,15 +95,20 @@ object Memes {
         val posts = lock.withLock {
             val queue = pool.getOrPut(subject) { ArrayDeque() }
             var tries = 0
-            while (queue.count { it.link !in seen } < AT_ONCE && tries < 4) {
+            while (queue.count { it.link !in seen && sources(it).isNotEmpty() } < AT_ONCE && tries < 4) {
                 tries++
                 val more = gather(subject) ?: continue
                 queue += more.filter { p -> p.link !in seen && queue.none { it.link == p.link } }.shuffled()
             }
-            buildList { while (size < AT_ONCE && queue.isNotEmpty()) queue.removeFirst().takeIf { it.link !in seen }?.let { add(it) } }
+            buildList { while (size < AT_ONCE && queue.isNotEmpty()) queue.removeFirst().takeIf { it.link !in seen && sources(it).isNotEmpty() }?.let { add(it) } }
         }
         coroutineScope {
-            posts.map { p -> async { runCatching { picture(get(p.url))?.let { Meme(p.title, it, p.source, p.link) } }.getOrNull() } }
+            posts.map { p ->
+                async {
+                    runCatching { picture(fetchPicture(p))?.let { Meme(p.title, it, p.source, p.link) } }
+                        .onFailure { Log.w(TAG, "${p.url}: ${it.message}") }.getOrNull()
+                }
+            }
                 .awaitAll()
                 .filterNotNull()
         }
@@ -94,7 +127,7 @@ object Memes {
         return runCatching {
             if (source.startsWith("r/")) reddit(String(get("$REDDIT/${source.removePrefix("r/")}/50")))
             else lemmy(String(get("$LEMMY?community_name=${URLEncoder.encode(LEMMY_COMMUNITY, "UTF-8")}&sort=TopAll&limit=50&page=${source.removePrefix("lemmy/")}")))
-        }.getOrNull()
+        }.onFailure { Log.w(TAG, "$source: ${it.message}") }.getOrNull()
     }
 
     private fun isPicture(url: String) = url.lowercase().substringBefore('?').let { u -> PICTURE.any { u.endsWith(it) } }
@@ -116,7 +149,10 @@ object Memes {
             }
             .map { v ->
                 val post = v.getJSONObject("post")
-                Post(post.optString("name"), post.optString("url"), "Lemmy · Science Memes", post.optString("ap_id"))
+                // lemmy.world keeps a copy of most pictures (thumbnail_url): for when the original's
+                // server doesn't answer.
+                val copy = post.optString("thumbnail_url").takeIf { it.isNotEmpty() && it != post.optString("url") }
+                Post(post.optString("name"), post.optString("url"), "Lemmy · Science Memes", post.optString("ap_id"), copy)
             }
             .filter { it.link.isNotEmpty() && isPicture(it.url) }
     }
