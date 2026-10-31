@@ -86,7 +86,7 @@ import kotlinx.coroutines.launch
 
 private val LETTERS = listOf('A', 'B', 'C', 'D')
 
-/** A whole paper is given this long in Exam mode, as in the real one. */
+/** A whole paper (or a timed set) is given this long in Exam mode, as in the real one. */
 private const val EXAM_MS = 60 * 60 * 1000L
 
 /**
@@ -129,7 +129,6 @@ fun QuizScreen(
         return
     }
     val exam = s.mode == Mode.Exam.name && !review
-    val timed = exam && s.paperId != null
 
     // The time spent answering, kept as it goes: time away from the app doesn't count.
     if (!review) {
@@ -149,7 +148,7 @@ fun QuizScreen(
                 spent += 1000
                 progresses.addTime(sessionId, 1000)
                 questions.getOrNull(index)?.let { pack.subject(it) }?.let { progresses.study(it, 1000) }
-                if (timed && spent >= EXAM_MS) {
+                if (exam && spent >= EXAM_MS) {
                     progresses.finish(sessionId)
                     onFinished()
                     break
@@ -185,7 +184,7 @@ fun QuizScreen(
                 Text(stringResource(R.string.question_of, index + 1, questions.size), style = MaterialTheme.typography.titleMedium)
                 Text(s.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-            if (timed) {
+            if (exam) {
                 val left = (EXAM_MS - spent).coerceAtLeast(0) / 1000
                 Text(
                     "%d:%02d".format(left / 60, left % 60),

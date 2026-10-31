@@ -54,6 +54,9 @@
     <string name="mode_practice_description">Each answer marked as you go, with the working where there is some</string>
     <string name="mode_exam">Exam</string>
     <string name="mode_exam_description">The whole paper in an hour, marked at the end</string>
+    <string name="timed_set">Timed set</string>
+    <string name="timed_set_description">40 questions from across the papers in an hour, marked at the end</string>
+    <string name="timed_set_title">%s timed set</string>
 
     <string name="question_of">Question %1$d of %2$d</string>
     <string name="question_label">Question %d</string>

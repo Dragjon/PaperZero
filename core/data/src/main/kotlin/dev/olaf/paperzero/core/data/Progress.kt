@@ -58,6 +58,16 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
     }
 
     /**
+     * A timed set of [subject]: [TIMED_QUESTIONS] questions from across its papers, sat like a
+     * paper in Exam mode; an unfinished one ([title]) is carried on instead.
+     */
+    suspend fun startTimed(subject: Subject, title: String, random: Random = Random.Default): Long {
+        dao.unfinishedTimed(title)?.let { return it.id }
+        val keys = pack.questions(subject).shuffled(random).take(TIMED_QUESTIONS).map { it.key }
+        return dao.insert(SessionEntity(mode = Mode.Exam.name, paperId = null, title = title, keys = keys.joinToString(","), startedAt = now()))
+    }
+
+    /**
      * A feed of questions to scroll through: answers given on the way are kept like any others.
      * The questions themselves are picked as it goes ([feed]).
      */
@@ -133,6 +143,8 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
 
     companion object {
         const val MISTAKES_AT_ONCE = 20
+        /** A timed set is as long as a Paper 1. */
+        const val TIMED_QUESTIONS = 40
         /** Right this many times running after a mistake, a question is fixed. */
         const val FIXED_AFTER = 2
 

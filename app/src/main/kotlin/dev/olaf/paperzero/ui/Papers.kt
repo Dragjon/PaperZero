@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -89,6 +90,10 @@ fun PapersScreen(pack: Pack, progresses: Progresses, start: Subject, onBack: () 
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            item(key = "timed") {
+                val title = stringResource(R.string.timed_set_title, subjectName(subject))
+                TimedCard { scope.launch { onStart(progresses.startTimed(subject, title)) } }
+            }
             items(papers, key = { it.id }) { paper ->
                 PaperCard(paper, progresses.title(paper), progress?.best?.get(paper.id)) { picked = paper }
             }
@@ -140,6 +145,29 @@ fun Chip(label: String, selected: Boolean, subtle: Boolean = false, onClick: () 
         },
     ) {
         Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp))
+    }
+}
+
+/** A timed set of the subject: 40 questions from any of its papers, against the clock. */
+@Composable
+private fun TimedCard(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        interactionSource = interaction,
+        modifier = Modifier.fillMaxWidth().pressScale(interaction),
+    ) {
+        Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.Timer, contentDescription = null)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.timed_set), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.timed_set_description), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
     }
 }
 

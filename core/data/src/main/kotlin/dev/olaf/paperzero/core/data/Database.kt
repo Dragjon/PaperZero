@@ -91,6 +91,10 @@ interface PaperDao {
     @Query("SELECT * FROM sessions WHERE paperId = :paperId AND finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     suspend fun unfinished(paperId: String): SessionEntity?
 
+    /** An unfinished timed set (an Exam sitting of no one paper) called [title], to carry on with. */
+    @Query("SELECT * FROM sessions WHERE paperId IS NULL AND mode = 'Exam' AND title = :title AND finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
+    suspend fun unfinishedTimed(title: String): SessionEntity?
+
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteSession(id: Long)
 
