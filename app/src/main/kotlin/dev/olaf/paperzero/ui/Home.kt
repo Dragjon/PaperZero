@@ -64,6 +64,7 @@ import dev.olaf.paperzero.core.data.SubjectProgress
 import dev.olaf.paperzero.core.design.Dock
 import dev.olaf.paperzero.core.design.DockAction
 import dev.olaf.paperzero.core.design.DockFade
+import dev.olaf.paperzero.core.design.ChalkOlaf
 import dev.olaf.paperzero.core.design.LocalPaperExtras
 import dev.olaf.paperzero.core.design.PrimaryPill
 import dev.olaf.paperzero.core.design.SheetAction
@@ -117,6 +118,8 @@ fun HomeScreen(
                     Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displaySmall)
                     Spacer(Modifier.height(4.dp))
                     Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(8.dp))
+                    ChalkOlaf(Modifier.fillMaxWidth().height(170.dp))
                 }
             }
             if (subjects.isEmpty()) {
