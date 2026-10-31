@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -153,10 +154,12 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     val context = LocalContext.current
 
     // Memes between the questions, when they're turned on: about one in [MemeFrequency.every],
-    // never on a beat. memeAt: after which question, which meme.
+    // never on a beat. memeAt: after which question, which meme; shown: those of them in the feed,
+    // a meme only ever put in ahead of the question on screen, so the feed never shifts under you.
     val settings = LocalSettings.current
     val memes = remember { mutableStateListOf<Meme>() }
     val memeAt = remember { mutableStateMapOf<Int, Int>() }
+    val shown = remember { mutableStateMapOf<Int, Int>() }
     var nextMeme by remember { mutableIntStateOf(-1) }
     var memesGone by remember { mutableStateOf(false) }
 
@@ -165,7 +168,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             buildList {
                 feed.forEachIndexed { i, q ->
                     add(Page.Ask(i, q))
-                    if (settings.memes) memeAt[i]?.let { k -> memes.getOrNull(k)?.let { add(Page.Fun(k, it)) } }
+                    if (settings.memes) shown[i]?.let { k -> memes.getOrNull(k)?.let { add(Page.Fun(k, it)) } }
                 }
             }
         }
@@ -201,6 +204,12 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             }
         }
         LaunchedEffect(memeAt.size, memes.size) {
+            val here = when (val page = pages.getOrNull(pager.currentPage)) {
+                is Page.Ask -> page.index
+                is Page.Fun -> shown.entries.firstOrNull { it.value == page.number }?.key ?: 0
+                null -> 0
+            }
+            memeAt.forEach { (at, k) -> if (at > here && at !in shown && k < memes.size) shown[at] = k }
             // A few ahead of the feed; if the internet isn't there, the feed goes on without them.
             if (memesGone || memes.size >= memeAt.size + 2) return@LaunchedEffect
             val got = Memes.fetch((source as? FeedSource.Of)?.subject, memes.map { it.link }.toSet())
@@ -241,6 +250,8 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                     state = pager,
                     key = { pages[it].key },
                     beyondViewportPageCount = 1,
+                    // A short swipe is enough for the next, as with reels: a quarter of the way.
+                    flingBehavior = PagerDefaults.flingBehavior(state = pager, snapPositionalThreshold = 0.25f),
                     modifier = Modifier.fillMaxSize(),
                 ) { p ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
