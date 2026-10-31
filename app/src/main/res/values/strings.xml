@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PaperZero</string>
+    <string name="tagline">Paper 1 questions from O-Level and school prelims, to do again and again</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="no_pack">This build has no papers in it.</string>
+
+    <string name="subject_biology">Biology</string>
+    <string name="subject_chemistry">Chemistry</string>
+    <string name="subject_physics">Physics</string>
+    <string name="subject_line">%1$d questions · %2$d tried · %3$d%% right</string>
+    <string name="subject_line_new">%1$d questions · not started</string>
+
+    <string name="practise">Practise</string>
+    <string name="mistakes">Mistakes</string>
+    <string name="papers">Papers</string>
+    <plurals name="mistakes_to_fix">
+        <item quantity="one">%d mistake to fix</item>
+        <item quantity="other">%d mistakes to fix</item>
+    </plurals>
+    <string name="mistakes_hint">A question you get wrong comes back here until you get it right twice running.</string>
+    <string name="mistakes_none">No mistakes to fix. Wrong answers come here to practise again.</string>
+    <string name="practise_mistakes">Practise mistakes</string>
+    <string name="doomscroll">Doomscroll</string>
+    <string name="doomscroll_description">Endless questions, one a screen. Swipe past, or tap a letter to try one.</string>
+    <string name="scroll_hint">Swipe up for the next</string>
+    <string name="scroll_score">%1$d/%2$d right</string>
+
+    <string name="filter_all">All</string>
+    <string name="filter_olevel">O-Level</string>
+    <string name="filter_schools">School prelims</string>
+    <string name="paper_line">%d questions</string>
+    <string name="paper_best">%1$d questions · best %2$d/%3$d</string>
+    <string name="mode_practice">Practise</string>
+    <string name="mode_practice_description">Each answer marked as you go, with the working where there is some</string>
+    <string name="mode_exam">Exam</string>
+    <string name="mode_exam_description">The whole paper in an hour, marked at the end</string>
+
+    <string name="question_of">Question %1$d of %2$d</string>
+    <string name="question_label">Question %d</string>
+    <string name="right">Right</string>
+    <string name="wrong_answer">Not quite: it\'s %c</string>
+    <string name="your_answer">You chose %c</string>
+    <string name="not_answered">Not answered</string>
+    <string name="next">Next</string>
+    <string name="previous">Back</string>
+    <string name="finish">Finish</string>
+    <string name="all_questions">All questions</string>
+    <string name="working">How it\'s worked out</string>
+    <string name="finish_early_title">Finish now?</string>
+    <plurals name="finish_early_text">
+        <item quantity="one">%d question has no answer yet. It\'ll count as wrong.</item>
+        <item quantity="other">%d questions have no answer yet. They\'ll count as wrong.</item>
+    </plurals>
+    <string name="keep_going">Keep going</string>
+    <string name="time_up">Time\'s up</string>
+    <string name="leave_title">Leave this paper?</string>
+    <string name="leave_text">Your answers are kept: open the paper again to carry on.</string>
+    <string name="leave">Leave</string>
+
+    <string name="result_of">out of %d</string>
+    <string name="result_time">%1$d%% · %2$s</string>
+    <string name="review">Review</string>
+    <string name="practise_wrong">Practise the wrong ones</string>
+    <string name="done">Done</string>
+</resources>

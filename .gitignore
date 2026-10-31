@@ -1,0 +1,11 @@
+# The questions are a private content pack: papers belong to SEAB/Cambridge, the schools and
+# their publishers. Only the code is public.
+/content/
+/work/
+*.pyc
+__pycache__/
+.gradle/
+build/
+local.properties
+.idea/
+*.iml

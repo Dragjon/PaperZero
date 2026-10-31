@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A page with a ring on it, the zero of PaperZero, and a tick inside: a question done right. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The page, its top corner turned down. -->
+    <path
+        android:fillColor="#F4EEE6"
+        android:pathData="M36,28 L64,28 L74,38 L74,80 Q74,82 72,82 L36,82 Q34,82 34,80 L34,30 Q34,28 36,28 Z" />
+    <path
+        android:fillColor="#D9CFC3"
+        android:pathData="M64,28 L74,38 L66,38 Q64,38 64,36 Z" />
+    <!-- Lines of a question. -->
+    <path
+        android:strokeColor="#B3A99D"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M40,35 L60,35 M40,40.5 L55,40.5" />
+    <!-- The zero. -->
+    <path
+        android:strokeColor="#FF6A3D"
+        android:strokeWidth="5"
+        android:pathData="M54,61 m-12,0 a12,12 0,1 1,24 0 a12,12 0,1 1,-24 0" />
+    <!-- The tick. -->
+    <path
+        android:strokeColor="#1E0E07"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M48.5,61.5 L52.5,65.5 L60,57" />
+</vector>
