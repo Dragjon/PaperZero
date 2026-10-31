@@ -1,35 +1,34 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
+import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -38,10 +37,12 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -50,9 +51,11 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -65,13 +68,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import dev.olaf.paperzero.LocalSettings
 import dev.olaf.paperzero.Meme
 import dev.olaf.paperzero.Memes
@@ -83,9 +94,6 @@ import dev.olaf.paperzero.core.data.Question
 import dev.olaf.paperzero.core.data.Subject
 import dev.olaf.paperzero.core.design.LocalPaperExtras
 import dev.olaf.paperzero.core.design.ZoomBox
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -102,10 +110,29 @@ sealed interface FeedSource {
     data class Saved(val title: String, val keys: List<String>, val start: Int) : FeedSource
 }
 
+/** A page of the feed: a question (the [index]th of the feed's), or a meme between them. */
+private sealed interface Page {
+    val key: String
+
+    data class Ask(val index: Int, val question: Question) : Page {
+        override val key get() = "q$index/${question.key}"
+    }
+
+    data class Fun(val number: Int, val meme: Meme) : Page {
+        override val key get() = "m$number"
+    }
+}
+
+/** The feed's ink: white on its black, as a phone's reels are. */
+private val Ink = Color.White
+private val InkSoft = Color.White.copy(alpha = 0.72f)
+private val Glass = Color.White.copy(alpha = 0.14f)
+
 /**
- * Questions as a feed of posts, one under another: each with where it's from, its picture, a
- * heart and comments, and A to D to try it. A subject's feed never ends: once every question has
- * gone by they come round again in a new order, ones not yet tried first.
+ * Questions as a feed, one to a screen, swiped up for the next, on black: the question's picture,
+ * where it's from and its topics, a rail of heart, comments, working and share, and A to D to try
+ * it. Double-tap a question to like it. A subject's feed never ends: once every question has gone
+ * by they come round again in a new order, ones not yet tried first.
  */
 @Composable
 fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: () -> Unit, onTopic: (Subject, Int) -> Unit) {
@@ -123,7 +150,27 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     var tried by remember { mutableIntStateOf(0) }
     var right by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
-    val list = rememberLazyListState()
+    val context = LocalContext.current
+
+    // Memes between the questions, when they're turned on: about one in [MemeFrequency.every],
+    // never on a beat. memeAt: after which question, which meme.
+    val settings = LocalSettings.current
+    val memes = remember { mutableStateListOf<Meme>() }
+    val memeAt = remember { mutableStateMapOf<Int, Int>() }
+    var nextMeme by remember { mutableIntStateOf(-1) }
+    var memesGone by remember { mutableStateOf(false) }
+
+    val pages by remember {
+        derivedStateOf {
+            buildList {
+                feed.forEachIndexed { i, q ->
+                    add(Page.Ask(i, q))
+                    if (settings.memes) memeAt[i]?.let { k -> memes.getOrNull(k)?.let { add(Page.Fun(k, it)) } }
+                }
+            }
+        }
+    }
+    val pager = rememberPagerState { pages.size }
 
     LaunchedEffect(source) {
         sessionId = progresses.startScroll(title)
@@ -131,26 +178,18 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             is FeedSource.Of -> feed += progresses.feed(source.subject, progresses.progress.first().tried, source.topic)
             is FeedSource.Saved -> {
                 feed += source.keys.mapNotNull { pack.question(it) }
-                list.scrollToItem(source.start.coerceIn(0, (feed.size - 1).coerceAtLeast(0)))
+                pager.scrollToPage(source.start.coerceIn(0, (feed.size - 1).coerceAtLeast(0)))
             }
         }
     }
     // Near the end of a subject's feed, its questions come round again.
     if (source is FeedSource.Of) {
-        LaunchedEffect(list) {
-            snapshotFlow { list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }.collect { last ->
-                if (feed.isNotEmpty() && last > feed.size - 4) feed += progresses.feed(source.subject, emptySet(), source.topic)
+        LaunchedEffect(pager) {
+            snapshotFlow { pager.currentPage }.collect { page ->
+                if (feed.isNotEmpty() && page > pages.size - 4) feed += progresses.feed(source.subject, emptySet(), source.topic)
             }
         }
     }
-
-    // Memes between the posts, when they're turned on: about one in [MemeFrequency.every] posts,
-    // never on a beat. memeAt: after which post, which meme.
-    val settings = LocalSettings.current
-    val memes = remember { mutableStateListOf<Meme>() }
-    val memeAt = remember { mutableStateMapOf<Int, Int>() }
-    var nextMeme by remember { mutableIntStateOf(-1) }
-    var memesGone by remember { mutableStateOf(false) }
     if (settings.memes) {
         LaunchedEffect(feed.size, settings.memeFrequency) {
             val every = settings.memeFrequency.every
@@ -170,10 +209,10 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     }
 
     // Time studied, for the stats: a second at a time while the feed is open and in use, to the
-    // science of the post on screen. Left alone for IDLE_MS (no scrolling, no answer), it stops.
+    // science of the question on screen. Left alone for IDLE_MS (no swipe, no answer), it stops.
     var touched by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(list) {
-        snapshotFlow { list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset }.collect { touched = System.currentTimeMillis() }
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.currentPage to pager.currentPageOffsetFraction }.collect { touched = System.currentTimeMillis() }
     }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var running by remember { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
@@ -189,63 +228,70 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
         while (running) {
             delay(1000)
             if (System.currentTimeMillis() - touched > IDLE_MS) continue
-            feed.getOrNull(list.firstVisibleItemIndex)?.let { pack.subject(it) }?.let { progresses.study(it, 1000) }
+            (pages.getOrNull(pager.currentPage) as? Page.Ask)?.let { pack.subject(it.question) }?.let { progresses.study(it, 1000) }
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close)) }
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            if (tried > 0) {
-                Text(
-                    stringResource(R.string.scroll_score, right, tried),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(end = 12.dp),
-                )
+    CompositionLocalProvider(LocalContentColor provides Ink) {
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+            if (pages.isEmpty()) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center))
+            } else {
+                VerticalPager(
+                    state = pager,
+                    key = { pages[it].key },
+                    beyondViewportPageCount = 1,
+                    modifier = Modifier.fillMaxSize(),
+                ) { p ->
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                        when (val page = pages[p]) {
+                            is Page.Ask -> {
+                                val question = page.question
+                                val subject = pack.paper(question.paperId)?.subject
+                                val from = pack.paper(question.paperId)?.let { progresses.title(it) } ?: ""
+                                // A saved feed mixes the sciences: each question in its own colours.
+                                SubjectTheme(if (source is FeedSource.Saved) subject else null, fill = false) {
+                                    QuestionPage(
+                                        question = question,
+                                        source = from,
+                                        subject = subject,
+                                        topics = pack.topicNames(question).zip(question.topics),
+                                        mine = chosen[page.index],
+                                        liked = question.key in liked,
+                                        comments = comments[question.key].orEmpty(),
+                                        onZoom = { zoomed = it },
+                                        onLike = { like -> scope.launch { progresses.setLiked(question.key, like) } },
+                                        onComments = { commenting = question },
+                                        onShare = { scope.launch { shareQuestion(context, question, from) } },
+                                        onTopic = { topic -> subject?.let { onTopic(it, topic) } },
+                                        onChoose = { letter ->
+                                            chosen[page.index] = letter
+                                            tried++
+                                            touched = System.currentTimeMillis()
+                                            if (letter == question.answer) right++
+                                            scope.launch { progresses.answer(sessionId, question, letter) }
+                                        },
+                                    )
+                                }
+                            }
+                            is Page.Fun -> MemePage(page.meme, onShare = { shareMeme(context, page.meme) })
+                        }
+                    }
+                }
             }
-        }
-        if (feed.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        } else {
-            LazyColumn(
-                state = list,
-                modifier = Modifier.fillMaxSize().align(Alignment.CenterHorizontally).widthIn(max = 640.dp),
-                contentPadding = PaddingValues(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            // Over it all, faded into the picture: close, the feed's name, how it's going.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
+                    .statusBarsPadding()
+                    .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                itemsIndexed(feed, key = { i, q -> "$i/${q.key}" }) { i, question ->
-                    val subject = pack.paper(question.paperId)?.subject
-                    // A saved feed mixes the sciences: each post in its own colours.
-                    SubjectTheme(if (source is FeedSource.Saved) subject else null, fill = false) {
-                    Column {
-                    Post(
-                        question = question,
-                        source = pack.paper(question.paperId)?.let { progresses.title(it) } ?: "",
-                        subject = subject,
-                        topics = pack.topicNames(question).zip(question.topics),
-                        mine = chosen[i],
-                        liked = question.key in liked,
-                        comments = comments[question.key].orEmpty(),
-                        onZoom = { zoomed = it },
-                        onLike = { scope.launch { progresses.setLiked(question.key, question.key !in liked) } },
-                        onComments = { commenting = question },
-                        onTopic = { topic -> subject?.let { onTopic(it, topic) } },
-                        onChoose = { letter ->
-                            chosen[i] = letter
-                            tried++
-                            touched = System.currentTimeMillis()
-                            if (letter == question.answer) right++
-                            scope.launch { progresses.answer(sessionId, question, letter) }
-                        },
-                    )
-                    if (settings.memes) memeAt[i]?.let { memes.getOrNull(it) }?.let { MemePost(it) }
-                    }
-                    }
+                IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close)) }
+                Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                if (tried > 0) {
+                    Text(stringResource(R.string.scroll_score, right, tried), style = MaterialTheme.typography.titleMedium, color = InkSoft, modifier = Modifier.padding(end = 12.dp))
                 }
             }
         }
@@ -262,12 +308,16 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     zoomed?.let { path -> Zoomed(path) { zoomed = null } }
 }
 
-/** Left this long without a scroll or an answer, a feed stops counting the time. */
+/** Left this long without a swipe or an answer, a feed stops counting the time. */
 private const val IDLE_MS = 120_000L
 
-/** One question as a post. */
+/** Room left over the picture for the bar faded over the feed's top. */
+private val TOP_ROOM = 56.dp
+
+/** One question, a screen to itself. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Post(
+private fun QuestionPage(
     question: Question,
     source: String,
     subject: Subject?,
@@ -277,8 +327,9 @@ private fun Post(
     liked: Boolean,
     comments: List<CommentEntity>,
     onZoom: (String) -> Unit,
-    onLike: () -> Unit,
+    onLike: (Boolean) -> Unit,
     onComments: () -> Unit,
+    onShare: () -> Unit,
     onTopic: (Int) -> Unit,
     onChoose: (Char) -> Unit,
 ) {
@@ -286,149 +337,171 @@ private fun Post(
     val success = LocalPaperExtras.current.success
     val image by rememberAssetImage(question.image)
     val picture = picture()
-    Column(Modifier.fillMaxWidth()) {
-        // Who posted it: the paper, as an account would be.
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.size(36.dp)) {
-                Box(contentAlignment = Alignment.Center) { subject?.let { Icon(it.icon, contentDescription = null, modifier = Modifier.size(20.dp)) } }
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(source, style = MaterialTheme.typography.titleSmall)
-                Text(
-                    listOfNotNull(subject?.let { subjectName(it) }, stringResource(R.string.question_label, question.number)).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
-            }
-        }
-        // The question, edge to edge, on white as printed.
+    // A double tap likes it (never unlikes), with a heart that blooms and fades.
+    val heart = remember { Animatable(0f) }
+    var hearts by remember { mutableIntStateOf(0) }
+    LaunchedEffect(hearts) {
+        if (hearts == 0) return@LaunchedEffect
+        heart.snapTo(0f)
+        heart.animateTo(1f, tween(700))
+    }
+
+    Column(Modifier.fillMaxSize().widthIn(max = 640.dp).statusBarsPadding().navigationBarsPadding().padding(top = TOP_ROOM)) {
+        // The question, as printed, as big as fits; tap to look closer.
         Box(
             Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .background(picture.ground)
-                .clickable { onZoom(question.image) },
+                .pointerInput(question.key, liked) {
+                    detectTapGestures(
+                        onTap = { onZoom(question.image) },
+                        onDoubleTap = {
+                            if (!liked) onLike(true)
+                            hearts++
+                        },
+                    )
+                },
+            contentAlignment = Alignment.Center,
         ) {
             val shown = image
-            if (shown == null) {
-                Box(Modifier.fillMaxWidth().height(260.dp))
-            } else {
+            if (shown != null) {
                 Image(
                     shown,
                     contentDescription = null,
-                    contentScale = ContentScale.FillWidth,
+                    contentScale = ContentScale.Fit,
                     colorFilter = picture.filter,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(shown.width.toFloat() / shown.height).padding(6.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .background(picture.ground, MaterialTheme.shapes.medium)
+                        .padding(8.dp),
+                )
+            }
+            val t = heart.value
+            if (t > 0f && t < 1f) {
+                Icon(
+                    Icons.Rounded.Favorite,
+                    contentDescription = null,
+                    tint = colors.primary,
+                    modifier = Modifier.size(120.dp).graphicsLayer {
+                        val grow = (t * 4).coerceAtMost(1f)
+                        scaleX = 0.5f + 0.6f * grow
+                        scaleY = 0.5f + 0.6f * grow
+                        alpha = if (t < 0.6f) 1f else (1f - t) / 0.4f
+                    },
                 )
             }
         }
-        // Heart and comments, as under any post.
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onLike) {
-                Icon(
-                    if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = stringResource(if (liked) R.string.unlike else R.string.like),
-                    tint = if (liked) colors.primary else colors.onSurface,
-                )
-            }
-            IconButton(onClick = onComments) {
-                Icon(Icons.Rounded.ChatBubbleOutline, contentDescription = stringResource(R.string.comments))
-            }
-            Spacer(Modifier.weight(1f))
-            val explain = question.explain
-            if (mine != null && explain != null) {
-                IconButton(onClick = { onZoom(explain) }) {
-                    Icon(Icons.Rounded.Lightbulb, contentDescription = stringResource(R.string.working))
+        // Who posted it and its tags, beside the rail of actions, as a reel has them.
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.size(36.dp)) {
+                        Box(contentAlignment = Alignment.Center) { subject?.let { Icon(it.icon, contentDescription = null, modifier = Modifier.size(20.dp)) } }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(source, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            listOfNotNull(subject?.let { subjectName(it) }, stringResource(R.string.question_label, question.number)).joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkSoft,
+                        )
+                    }
                 }
+                if (topics.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        topics.forEach { (name, topic) ->
+                            Surface(onClick = { onTopic(topic) }, shape = CircleShape, color = Glass, contentColor = Ink) {
+                                Text("# $name", style = MaterialTheme.typography.labelLarge, maxLines = 1, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            }
+                        }
+                    }
+                }
+                if (mine != null) {
+                    val ok = mine == question.answer
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Close, contentDescription = null, tint = if (ok) success else colors.error, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (ok) stringResource(R.string.right) else stringResource(R.string.wrong_answer, question.answer), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                comments.lastOrNull()?.let { last ->
+                    Text(last.text, style = MaterialTheme.typography.bodyMedium, color = InkSoft, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable(onClick = onComments))
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                RailAction(
+                    if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    stringResource(if (liked) R.string.unlike else R.string.like),
+                    stringResource(R.string.like),
+                    tint = if (liked) colors.primary else Ink,
+                ) { onLike(!liked) }
+                RailAction(Icons.Rounded.ChatBubble, stringResource(R.string.comments), if (comments.isEmpty()) stringResource(R.string.comment) else "${comments.size}", onClick = onComments)
+                val explain = question.explain
+                if (mine != null && explain != null) {
+                    RailAction(Icons.Rounded.Lightbulb, stringResource(R.string.working), stringResource(R.string.working_short)) { onZoom(explain) }
+                }
+                RailAction(Icons.Rounded.Share, stringResource(R.string.share), stringResource(R.string.share), onClick = onShare)
             }
         }
         // Try it: A to D, marked at once.
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf('A', 'B', 'C', 'D').forEach { letter ->
                 val (fill, ink) = when {
-                    mine != null && letter == question.answer -> success to colors.surface
+                    mine != null && letter == question.answer -> success to Color.Black
                     mine != null && letter == mine -> colors.error to colors.onError
-                    mine != null -> colors.surfaceContainer to colors.onSurfaceVariant.copy(alpha = 0.5f)
-                    else -> colors.surfaceContainerHigh to colors.onSurface
+                    mine != null -> Glass to InkSoft.copy(alpha = 0.4f)
+                    else -> Glass to Ink
                 }
                 Surface(
                     onClick = { if (mine == null) onChoose(letter) },
                     shape = MaterialTheme.shapes.medium,
                     color = fill,
                     contentColor = ink,
-                    modifier = Modifier.weight(1f).height(44.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) { Text(letter.toString(), style = MaterialTheme.typography.titleMedium) }
                 }
             }
         }
-        // The caption: its topics as tags, how it went, and a comment or two.
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (topics.isNotEmpty()) {
-                Row(Modifier.padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    topics.forEach { (name, topic) ->
-                        Surface(
-                            onClick = { onTopic(topic) },
-                            shape = CircleShape,
-                            color = colors.primaryContainer,
-                            contentColor = colors.onPrimaryContainer,
-                        ) {
-                            Text(
-                                "# $name",
-                                style = MaterialTheme.typography.labelLarge,
-                                maxLines = 1,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            )
-                        }
-                    }
-                }
-            }
-            if (mine != null) {
-                val ok = mine == question.answer
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Close, contentDescription = null, tint = if (ok) success else colors.error, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (ok) stringResource(R.string.right) else stringResource(R.string.wrong_answer, question.answer), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            comments.lastOrNull()?.let { last ->
-                Text(last.text, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-            }
-            if (comments.size > 1) {
-                Text(
-                    pluralStringResource(R.plurals.view_comments, comments.size, comments.size),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.clickable(onClick = onComments),
-                )
-            }
-        }
     }
 }
 
-/** A meme between the questions, as a post: where it's from, the picture, its title. */
+/** An action on the feed's rail: an icon over a word or a count. */
 @Composable
-private fun MemePost(meme: Meme) {
+private fun RailAction(icon: ImageVector, description: String, label: String, tint: Color = Ink, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.widthIn(min = 64.dp).clickable(onClick = onClick).padding(vertical = 6.dp),
+    ) {
+        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(30.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Ink)
+    }
+}
+
+/** A meme between the questions, a screen to itself: the picture, its title, where it's from. */
+@Composable
+private fun MemePage(meme: Meme, onShare: () -> Unit) {
     val colors = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(shape = CircleShape, color = colors.tertiaryContainer, contentColor = colors.onTertiaryContainer, modifier = Modifier.size(36.dp)) {
-                Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.EmojiEmotions, contentDescription = null, modifier = Modifier.size(20.dp)) }
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(meme.source, style = MaterialTheme.typography.titleSmall)
-                Text(stringResource(R.string.meme_label), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            }
+    Column(Modifier.fillMaxSize().widthIn(max = 640.dp).statusBarsPadding().navigationBarsPadding().padding(top = TOP_ROOM)) {
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Image(meme.image, contentDescription = meme.title, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth())
         }
-        Image(
-            meme.image,
-            contentDescription = meme.title,
-            contentScale = ContentScale.FillWidth,
-            modifier = Modifier.fillMaxWidth().aspectRatio(meme.image.width.toFloat() / meme.image.height),
-        )
-        if (meme.title.isNotBlank()) {
-            Text(meme.title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 24.dp), verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(shape = CircleShape, color = colors.tertiaryContainer, contentColor = colors.onTertiaryContainer, modifier = Modifier.size(36.dp)) {
+                        Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.EmojiEmotions, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(meme.source, style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.meme_label), style = MaterialTheme.typography.bodySmall, color = InkSoft)
+                    }
+                }
+                if (meme.title.isNotBlank()) Text(meme.title, style = MaterialTheme.typography.bodyMedium)
+            }
+            RailAction(Icons.Rounded.Share, stringResource(R.string.share), stringResource(R.string.share), onClick = onShare)
         }
     }
 }

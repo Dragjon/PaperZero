@@ -5,8 +5,9 @@ Physics, to practise again and again. A sibling of [Oscanner](https://github.com
 with the same philosophy: offline, no account, no ads, no tracking. (The one thing that goes online
 is science memes in the feeds, off unless you turn them on.)
 
-- **Doomscroll**: a science's questions as an endless feed of posts. Swipe past, or tap A to D to
-  try one and see at once if you're right.
+- **Doomscroll**: a science's questions as an endless feed, one to a screen, swiped up for the next,
+  as reels are. Tap A to D to try one and see at once if you're right; double-tap to like; share a
+  question (its picture, not its answer) to a friend.
 - **Like and comment**: heart a question to find it again; leave yourself comments on it (a hint, a
   mistake you made, a formula). Comments are private: they stay on your phone and no one else sees
   them. Home shows what you've liked and commented on.

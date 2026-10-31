@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the share button hands to other apps: the question being shared, from the cache. -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

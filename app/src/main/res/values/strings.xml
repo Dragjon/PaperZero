@@ -182,4 +182,8 @@
     <string name="settings_about">PaperZero %1$s · open source (GPL-3.0). Everything you do stays on this phone.</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
+    <string name="share">Share</string>
+    <string name="comment">Comment</string>
+    <string name="working_short">Working</string>
+    <string name="share_question_text">Can you get this one? %1$s, Question %2$d. From PaperZero.</string>
 </resources>
