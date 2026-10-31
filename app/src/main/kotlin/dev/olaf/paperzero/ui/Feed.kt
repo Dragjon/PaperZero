@@ -330,15 +330,21 @@ private fun Post(
         // The caption: its topics as tags, how it went, and a comment or two.
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (topics.isNotEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     topics.forEach { (name, topic) ->
-                        Text(
-                            "#" + name.replace(" ", "").replace(",", ""),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.primary,
-                            maxLines = 1,
-                            modifier = Modifier.clickable { onTopic(topic) },
-                        )
+                        Surface(
+                            onClick = { onTopic(topic) },
+                            shape = CircleShape,
+                            color = colors.primaryContainer,
+                            contentColor = colors.onPrimaryContainer,
+                        ) {
+                            Text(
+                                "# $name",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
                     }
                 }
             }

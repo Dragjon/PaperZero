@@ -93,9 +93,10 @@
     </plurals>
     <string name="stats_studied">studied in all</string>
     <plurals name="stats_streak">
-        <item quantity="one">day streak (best %d)</item>
-        <item quantity="other">days streak (best %d)</item>
+        <item quantity="one">day streak</item>
+        <item quantity="other">day streak</item>
     </plurals>
+    <string name="stats_best">best %d</string>
     <plurals name="stats_answered">
         <item quantity="one">%d answer</item>
         <item quantity="other">%d answers</item>

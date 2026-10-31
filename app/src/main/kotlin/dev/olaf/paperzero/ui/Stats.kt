@@ -117,7 +117,8 @@ fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, I
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             return
         }
-        var subject by rememberSaveable { mutableStateOf(s.subjects.firstOrNull()?.subject) }
+        // Topics of the science answered most, to begin with.
+        var subject by rememberSaveable { mutableStateOf(s.subjects.maxByOrNull { it.tally.answered }?.subject) }
         val navBar = WindowInsets.navigationBars.asPaddingValues()
         LazyColumn(
             modifier = Modifier.fillMaxSize().align(Alignment.CenterHorizontally).widthIn(max = 720.dp),
@@ -129,7 +130,9 @@ fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, I
                     Big(studied(s.studiedMs), stringResource(R.string.stats_studied), Modifier.weight(1f))
                     Big(
                         s.streak.toString(),
-                        pluralStringResource(R.plurals.stats_streak, s.streak, s.longestStreak),
+                        // The best only when it's more than now.
+                        pluralStringResource(R.plurals.stats_streak, s.streak) +
+                            (if (s.longestStreak > s.streak) "\n" + stringResource(R.string.stats_best, s.longestStreak) else ""),
                         Modifier.weight(1f),
                     )
                     Big(
