@@ -131,7 +131,7 @@
     <string name="settings">Settings</string>
     <string name="settings_look">Look</string>
     <string name="settings_theme">Theme</string>
-    <string name="theme_system">As the phone</string>
+    <string name="theme_system">Device</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="settings_ground">Background</string>
@@ -159,7 +159,7 @@
     <string name="settings_greeting_description">His moment on the way in</string>
     <string name="settings_memes">Memes</string>
     <string name="settings_memes_on">Science memes in feeds</string>
-    <string name="settings_memes_description">Now and then between the questions, from science subreddits on Reddit (through meme-api.com). Needs the internet, the one thing in the app that does; nothing about you is sent. Posts marked NSFW are skipped, but they\'re not checked by us</string>
+    <string name="settings_memes_description">Now and then between the questions: from science subreddits (through meme-api.com) and Lemmy\'s Science Memes community, thousands of them. Needs the internet, the one thing in the app that does; nothing about you is sent. Posts marked NSFW are skipped, but they\'re not checked by us</string>
     <string name="settings_meme_frequency">How often</string>
     <string name="settings_meme_frequency_description">Roughly; never on a beat</string>
     <string name="memes_rare">Rarely</string>
@@ -186,4 +186,7 @@
     <string name="comment">Comment</string>
     <string name="working_short">Working</string>
     <string name="share_question_text">Can you get this one? %1$s, Question %2$d. From PaperZero.</string>
+    <string name="settings_about_title">About</string>
+    <string name="settings_github">PaperZero on GitHub</string>
+    <string name="settings_github_description">The code, new releases, and where to report a problem</string>
 </resources>

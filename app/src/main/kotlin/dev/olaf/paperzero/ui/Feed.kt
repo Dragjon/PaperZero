@@ -161,7 +161,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     val memeAt = remember { mutableStateMapOf<Int, Int>() }
     val shown = remember { mutableStateMapOf<Int, Int>() }
     var nextMeme by remember { mutableIntStateOf(-1) }
-    var memesGone by remember { mutableStateOf(false) }
+    var misses by remember { mutableIntStateOf(0) }
 
     val pages by remember {
         derivedStateOf {
@@ -203,7 +203,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                 nextMeme += gap()
             }
         }
-        LaunchedEffect(memeAt.size, memes.size) {
+        LaunchedEffect(memeAt.size, memes.size, misses) {
             val here = when (val page = pages.getOrNull(pager.currentPage)) {
                 is Page.Ask -> page.index
                 is Page.Fun -> shown.entries.firstOrNull { it.value == page.number }?.key ?: 0
@@ -211,9 +211,9 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             }
             memeAt.forEach { (at, k) -> if (at > here && at !in shown && k < memes.size) shown[at] = k }
             // A few ahead of the feed; if the internet isn't there, the feed goes on without them.
-            if (memesGone || memes.size >= memeAt.size + 2) return@LaunchedEffect
+            if (misses >= MEME_MISSES || memes.size >= memeAt.size + 2) return@LaunchedEffect
             val got = Memes.fetch((source as? FeedSource.Of)?.subject, memes.map { it.link }.toSet())
-            if (got.isEmpty()) memesGone = true else memes += got
+            if (got.isEmpty()) misses++ else { misses = 0; memes += got }
         }
     }
 
@@ -318,6 +318,9 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     }
     zoomed?.let { path -> Zoomed(path) { zoomed = null } }
 }
+
+/** Memes found none this many times running (offline, say): the feed goes on without them. */
+private const val MEME_MISSES = 3
 
 /** Left this long without a swipe or an answer, a feed stops counting the time. */
 private const val IDLE_MS = 120_000L
@@ -496,7 +499,8 @@ private fun MemePage(meme: Meme, onShare: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(Modifier.fillMaxSize().widthIn(max = 640.dp).statusBarsPadding().navigationBarsPadding().padding(top = TOP_ROOM)) {
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Image(meme.image, contentDescription = meme.title, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth())
+            // As wide as the screen (as tall as it, if it's tall), however small the picture came.
+            Image(meme.image, contentDescription = meme.title, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
         }
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 24.dp), verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {

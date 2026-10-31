@@ -19,6 +19,9 @@ WORK = os.path.join(os.path.dirname(__file__), '..', '..', 'work')
 UNWRITE = os.path.join(os.path.dirname(__file__), '..', '..', 'content', 'unwrite.json')
 GAP = 24      # pixels between stacked stretches
 MARGIN = 16   # white kept round the ink when trimming
+PRINT = 160         # darker than this is print
+PRINT_PIXELS = 3    # ...a row with this many such pixels has some
+SIDE = 0.04         # the share of each side left out of that (a scan's edge shadow)
 # A page's furniture, whitened before cutting: the exam board's and printer's lines, page and paper
 # codes, and a scanning app's stamp. Only near the top or foot of a page.
 JUNK = re.compile(r'(©|ucles|cambridge|printed and published|camscanner|scanned with|turn over|'
@@ -34,11 +37,15 @@ FOOT = 0.88        # a page's foot is below this
 
 
 def trim(img):
-    """The image cut to its ink, with a little white round it."""
+    """The image cut to its ink, with a little white round it. Top and bottom go by print (a few
+    dark pixels to a row, away from the sides): not a scan's faint speckle or the shadow down the
+    page's edge, which would keep a band of empty paper under the question."""
     ink = img < 200
-    rows = np.flatnonzero(ink.any(1))
-    cols = np.flatnonzero(ink.any(0))
-    if not len(rows):
+    side = int(img.shape[1] * SIDE)
+    dark = (img[:, side:img.shape[1] - side] < PRINT).sum(1) >= PRINT_PIXELS
+    rows = np.flatnonzero(dark) if dark.any() else np.flatnonzero(ink.any(1))
+    cols = np.flatnonzero(ink[rows[0]:rows[-1] + 1].any(0)) if len(rows) else []
+    if not len(rows) or not len(cols):
         return None
     y0, y1 = max(0, rows[0] - MARGIN), min(img.shape[0], rows[-1] + 1 + MARGIN)
     x0, x1 = max(0, cols[0] - MARGIN), min(img.shape[1], cols[-1] + 1 + MARGIN)

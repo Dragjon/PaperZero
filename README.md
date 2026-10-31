@@ -29,8 +29,10 @@ pictures (white on black in the dark theme); the clock in exams; Olaf at start; 
 progress, or your likes and comments.
 
 **Memes** (off by default): science memes now and then between a feed's questions, rarely,
-sometimes or often, never on a beat. They come from science subreddits through
-[meme-api.com](https://github.com/D3vd/Meme_Api); NSFW and spoiler posts are skipped. This is why
+sometimes or often, never on a beat. They come from science subreddits (each science's own and
+science at large) through [meme-api.com](https://github.com/D3vd/Meme_Api), and from Lemmy's
+[Science Memes](https://mander.xyz/c/science_memes) community, thousands of posts, its all-time best
+a page at a time; NSFW and spoiler posts are skipped. This is why
 the app asks for the internet permission; nothing else uses it.
 
 ## The questions

@@ -1,6 +1,13 @@
 package dev.olaf.paperzero.ui
 
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -73,6 +80,9 @@ import dev.olaf.paperzero.core.design.PrimaryPill
 import dev.olaf.paperzero.core.design.SheetAction
 import dev.olaf.paperzero.core.design.pressScale
 
+/** A story tapped: which, where on screen, in what colour. */
+private class Entering(val subject: Subject, val at: Offset, val colour: Color)
+
 @Composable
 fun subjectName(subject: Subject) = stringResource(
     when (subject) {
@@ -111,7 +121,24 @@ fun HomeScreen(
     val likedHere = liked.filter { pack.question(it) != null }
     val commentedHere = commented.filter { pack.question(it) != null }
 
-    Box(Modifier.fillMaxSize()) {
+    // The way into a story's feed: its bubbles spiral out and a dark hole opens over Home, which
+    // tips back as it goes; then the feed.
+    var entering by remember { mutableStateOf<Entering?>(null) }
+    var root by remember { mutableStateOf(Offset.Zero) }
+    val tilt = remember { Animatable(0f) }
+    LaunchedEffect(entering) {
+        if (entering == null) tilt.snapTo(0f) else tilt.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
+    }
+    Box(Modifier.fillMaxSize().onGloballyPositioned { root = it.boundsInRoot().topLeft }) {
+    Box(
+        Modifier.fillMaxSize().graphicsLayer {
+            val p = tilt.value
+            rotationX = 14f * p
+            scaleX = 1f - 0.1f * p
+            scaleY = 1f - 0.1f * p
+            cameraDistance = 12f * density
+        },
+    ) {
         LazyColumn(
             modifier = Modifier.align(Alignment.TopCenter).widthIn(max = 720.dp).fillMaxSize(),
             contentPadding = PaddingValues(top = statusBar.calculateTopPadding() + 20.dp, bottom = navBar.calculateBottomPadding() + 120.dp),
@@ -161,7 +188,7 @@ fun HomeScreen(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        subjects.forEach { s -> SubjectTheme(s, fill = false) { Story(s) { onScroll(s) } } }
+                        subjects.forEach { s -> SubjectTheme(s, fill = false) { Story(s) { at, colour -> if (entering == null) entering = Entering(s, at, colour) } } }
                     }
                 }
                 item { Box(Modifier.padding(horizontal = 16.dp)) { StatsPeek(stats, onStats) } }
@@ -239,6 +266,11 @@ fun HomeScreen(
             DockAction(Icons.Rounded.Replay, stringResource(R.string.mistakes), onMistakes)
         }
     }
+    entering?.let { e ->
+        // It stays over Home as Home leaves, so Home never shows again on the way out.
+        BubbleSpiral(e.at - root, e.colour, seed = e.subject.ordinal) { onScroll(e.subject) }
+    }
+    }
 
     if (choosing) {
         ModalBottomSheet(
@@ -265,20 +297,27 @@ fun HomeScreen(
     }
 }
 
-/** A subject as a story: a ringed circle and its name. */
+/**
+ * A subject as a story: a circle in a ring of bubbles, and its name. [onClick] gets where the
+ * circle's centre is on screen, and its colour, for the way in.
+ */
 @Composable
-private fun Story(subject: Subject, onClick: () -> Unit) {
+private fun Story(subject: Subject, onClick: (Offset, Color) -> Unit) {
     val colors = MaterialTheme.colorScheme
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
+    var centre by remember { mutableStateOf(Offset.Zero) }
+    // No grey press square: the bubbles are the response.
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(remember { MutableInteractionSource() }, indication = null) { onClick(centre, colors.primary) },
+    ) {
         Box(
             Modifier
-                .size(76.dp)
-                .border(3.dp, colors.primary, CircleShape)
-                .padding(6.dp)
-                .clip(CircleShape),
+                .size(84.dp)
+                .onGloballyPositioned { centre = it.boundsInRoot().center },
             contentAlignment = Alignment.Center,
         ) {
-            Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.fillMaxSize()) {
+            BubbleRing(colors.primary, radius = 38.dp, biggest = 5.5.dp, seed = subject.ordinal, modifier = Modifier.fillMaxSize())
+            Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.size(62.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(subject.icon, contentDescription = null, modifier = Modifier.size(30.dp)) }
             }
         }

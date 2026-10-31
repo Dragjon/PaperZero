@@ -1,5 +1,7 @@
 package dev.olaf.paperzero.ui
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -16,7 +18,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -31,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.olaf.paperzero.MemeFrequency
@@ -51,7 +59,8 @@ fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Uni
     var confirming by remember { mutableStateOf<Wipe?>(null) }
     var done by remember { mutableStateOf<Wipe?>(null) }
     val scope = rememberCoroutineScope()
-    val version = LocalContext.current.let { it.packageManager.getPackageInfo(it.packageName, 0).versionName }
+    val context = LocalContext.current
+    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
 
     Column(Modifier.fillMaxSize()) {
         TopBar(stringResource(R.string.settings), null, onBack)
@@ -99,6 +108,11 @@ fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Uni
                 Action(stringResource(R.string.settings_reset), stringResource(R.string.settings_reset_description)) { confirming = Wipe.Progress }
                 Action(stringResource(R.string.settings_delete_saved), stringResource(R.string.settings_delete_saved_description)) { confirming = Wipe.Saved }
             }
+            Section(stringResource(R.string.settings_about_title)) {
+                Link(Icons.Rounded.Code, stringResource(R.string.settings_github), stringResource(R.string.settings_github_description)) {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB)))
+                }
+            }
             Text(
                 stringResource(R.string.settings_about, version ?: ""),
                 style = MaterialTheme.typography.bodySmall,
@@ -137,6 +151,23 @@ fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Uni
 }
 
 private enum class Wipe { Progress, Saved }
+
+/** Where PaperZero's code lives. */
+private const val GITHUB = "https://github.com/Dragjon/PaperZero"
+
+/** A row that opens somewhere outside the app. */
+@Composable
+private fun Link(icon: ImageVector, title: String, description: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.width(16.dp))
+        Label(title, description, Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+    }
+}
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
