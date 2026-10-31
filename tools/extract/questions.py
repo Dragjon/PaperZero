@@ -71,10 +71,17 @@ def number(line):
     return None
 
 
+def text_left(words):
+    """Where a page's text starts, a speck or a scanner's mark at its edge aside: the furthest left
+    that three words or more start at."""
+    lefts = sorted(w[1] for w in words)
+    return next((x for i, x in enumerate(lefts) if i + 2 < len(lefts) and lefts[i + 2] < x + 0.01), lefts[0])
+
+
 def candidates(page, words):
     if not words:
         return []
-    left = min(w[1] for w in words)
+    left, inner = min(w[1] for w in words), text_left(words)
     right = max(w[3] for w in words)
     out = []
     for line in lines(words):
@@ -87,7 +94,7 @@ def candidates(page, words):
         # right of each other.
         out.append(dict(page=page, number=n, top=min(w[2] for w in line),
                         lh=sum(w[4] - w[2] for w in line) / len(line), left=line[0][1] - left,
-                        part=bool(later_part.match(clean(line[0][0])))))
+                        inner=line[0][1] - inner, part=bool(later_part.match(clean(line[0][0])))))
     return out
 
 
@@ -129,7 +136,73 @@ def starts(pages):
     # Question numbers stand in one column: what's found away from it is dropped.
     xs = sorted(x['left'] for x in first)
     column = xs[len(xs) // 2]
-    return run([x for x in c if abs(x['left'] - column) < COLUMN])
+    # Or a speck at the page's edge moved the page's left: from where three words start instead.
+    near = [x for x in c if abs(x['left'] - column) < COLUMN or abs(x['inner'] - column) < COLUMN]
+    found = run(near)
+    # A stretch of numbers OCR missed altogether ends a run: the run after it, if there's one.
+    while found:
+        last = found[-1]
+        after = run([x for x in near if (x['page'], x['top']) > (last['page'], last['top']) and x['number'] > last['number']])
+        if len(after) < 3:
+            break
+        found += after
+    return misread(pages, found, column)
+
+
+# OCR's misreadings of digits in a question's number ("$18", "|8", "2l", "318", "2oThe").
+LOOKALIKE = str.maketrans({'l': '1', 'I': '1', '|': '1', 'i': '1', '!': '1', ']': '1', 'O': '0', 'o': '0'})
+STUCK = re.compile(r'^([0-9lIoO|]{1,3})[A-Z]')
+
+
+def reads_as(word, n):
+    """Whether [word] could be the number [n] misread: digits for their lookalikes, a mark before
+    it, or run into the question's first word."""
+    w = clean(word).rstrip('.):')
+    m = STUCK.match(w)
+    if m:
+        w = m.group(1)
+    if not w or len(w) > 4 or not any(ch.isdigit() for ch in w):
+        return False
+    for t in (w.translate(LOOKALIKE), re.sub(r'^\D+', '', w)):
+        if re.fullmatch(r'[0-9]+', t) and (int(t) == n or (len(t) == len(str(n)) + 1 and t.endswith(str(n)))):
+            return True
+    return False
+
+
+def misread(pages, found, column):
+    """[found] with the questions missed between two found ones put back (else the question before
+    takes them in): where a line in the numbers' column opens with something that reads as the
+    missing number; or, for one missing, the one line that starts in the numbers' column."""
+    if len(found) < 2:
+        return found
+    out = [found[0]]
+    for b in found[1:]:
+        for want in range(out[-1]['number'] + 1, b['number']):
+            a = out[-1]
+            hits, flush = [], []
+            for p in range(a['page'], b['page'] + 1):
+                ws = pages[p]
+                if not ws:
+                    continue
+                left = min(w[1] for w in ws)
+                for line in lines(ws):
+                    top = min(w[2] for w in line)
+                    if (p, top) <= (a['page'], a['top']) or (p, top) >= (b['page'], b['top']):
+                        continue
+                    if abs(line[0][1] - left - column) >= COLUMN or len(line) < 2:
+                        continue
+                    x = dict(page=p, number=want, top=top, lh=sum(w[4] - w[2] for w in line) / len(line),
+                             left=line[0][1] - left, part=False)
+                    if reads_as(line[0][0], want):
+                        hits.append(x)
+                    elif abs(line[0][1] - left - column) < 0.012 and EDGE < top < 1 - EDGE:
+                        flush.append(x)
+            if hits:
+                out.append(hits[0])
+            elif len(flush) == 1 and b['number'] - a['number'] == 2:
+                out.append(flush[0])
+        out.append(b)
+    return out
 
 
 # ---------------------------------------------------------------- cutting

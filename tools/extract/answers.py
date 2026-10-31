@@ -251,6 +251,113 @@ def from_worked(pages, paper=1):
     return out
 
 
+# O-Level Biology's key: a grid a year, read by grid_key.py.
+GRID = re.compile(r'Compiled Paper 1 Answers', re.I)
+# The older yearly series' answers, several years in one book: "OCTOBER/NOVEMBER 2010", then
+# "1. D" with its explanation for each question. OCR gives "1.D" or "1." and "D".
+BOOK = re.compile(r'Answer Key Paper 1 (\d{4})-(\d{4})', re.I)
+ENTRY = re.compile(r'^(\d{1,2})\s?[.,]\s?([A-D])$')
+ENTRY_NUMBER = re.compile(r'^(\d{1,2})[.,]$')
+SINGLE = re.compile(r'^[A-D]$')
+
+
+def entries(page):
+    """A page's "N. L"s, each with the word it starts at."""
+    out = []
+    for w in page:
+        t = w[0].strip()
+        m = ENTRY.match(t)
+        if m:
+            out.append((int(m.group(1)), m.group(2), w))
+            continue
+        m = ENTRY_NUMBER.match(t)
+        if m:
+            h, cy = w[4] - w[2], (w[2] + w[4]) / 2
+            after = [v for v in page if SINGLE.match(v[0].strip()) and abs((v[2] + v[4]) / 2 - cy) < h * 0.5 and 0 <= v[1] - w[3] < h * 2.5]
+            if after:
+                out.append((int(m.group(1)), min(after, key=lambda v: v[1])[0].strip(), w))
+    return out
+
+
+def by_column(found):
+    """[found] in reading order: columns (entries starting at about the same left) left to right,
+    each top to bottom. A page may be a spread of two, four columns in all."""
+    column, c, last = {}, -1, None
+    for x in sorted({e[2][1] for e in found}):
+        if last is None or x - last > 0.08:
+            c += 1
+        column[x] = c
+        last = x
+    return sorted(found, key=lambda e: (column[e[2][1]], e[2][2]))
+
+
+def counting_up(run):
+    """The longest part of [run] whose numbers count up: what's left is a misread number, or a
+    Paper 2 part ("2. A") read as an answer."""
+    best = []   # best[i]: the longest such part ending at run[i]
+    for i, (n, _) in enumerate(run):
+        before = [best[j] for j in range(i) if run[j][0] < n]
+        best.append(max(before, key=len, default=[]) + [run[i]])
+    return max(best, key=len, default=[])
+
+
+def from_book(pages, years):
+    """{year: {question: letter}} from a book of [years]' answers, in order: the entries in reading
+    order, a year ending where the count, into the thirties, goes back to the start (Paper 2's
+    numbers are mostly "1. (a)", which don't count). None when that doesn't give a run a year."""
+    runs = [[]]
+    for page in pages:
+        for n, letter, _ in by_column(entries(page)):
+            if runs[-1] and runs[-1][-1][0] >= 30 and n < runs[-1][-1][0] - 5:
+                runs.append([])
+            runs[-1].append((n, letter))
+    if len(runs) != len(years):
+        return None
+    return {year: dict(counting_up(run)) for year, run in zip(years, runs)}
+
+
+def readings(key):
+    """A key's readings: the first, and the larger second one farm.py --sharp makes, if there is one."""
+    folder = os.path.join(keywords.KEYS, keywords.key_id(key))
+    return [json.load(open(os.path.join(folder, f), encoding='utf-8')) for f in ('words.json', 'words300.json')
+            if os.path.exists(os.path.join(folder, f))]
+
+
+def merged(found):
+    """Readings of one paper's answers made one: what any reading found; where two disagree, nothing
+    (and the question reported)."""
+    out, disagree = {}, {}
+    for f in found:
+        for n, letter in f.items():
+            if n in out and out[n] != letter:
+                disagree.setdefault(n, {out[n]}).add(letter)
+            out.setdefault(n, letter)
+    for n in disagree:
+        del out[n]
+    return out, {n: sorted(v) for n, v in disagree.items()}
+
+
+def o_level(p, manifest):
+    """An O-Level paper's answers, from each book that has them, each reading of each; and where
+    they disagree. Chemistry's worked answers from 2016 overlap the older series' last book."""
+    found = []
+    books = [q['key'] for q in manifest if q['subject'] == p['subject'] and q['source'] == 'O-Level' and q['key'] and BOOK.search(q['key'])]
+    for key in sorted(set(books + [p['key']])):
+        m = BOOK.search(key)
+        if m and not int(m.group(1)) <= p['year'] <= int(m.group(2)):
+            continue
+        for pages in readings(key):
+            if m:
+                years = from_book(pages, list(range(int(m.group(1)), int(m.group(2)) + 1)))
+                if years is None:
+                    print('    %s: years not told apart' % keywords.key_id(key))
+                    continue
+                found.append(years[p['year']])
+            elif WORKED.search(key):
+                found.append(from_worked(pages))
+    return merged(found)
+
+
 def main():
     manual = {}
     # Part of the private content pack, like the answers it holds.
@@ -259,7 +366,8 @@ def main():
         manual = json.load(open(path, encoding='utf-8'))
     root = sys.argv[1].replace(chr(92), '/').rstrip('/') + '/Science/'
     only = set(sys.argv[2:])
-    for p in json.load(open(os.path.join(WORK, 'manifest.json'), encoding='utf-8')):
+    manifest = json.load(open(os.path.join(WORK, 'manifest.json'), encoding='utf-8'))
+    for p in manifest:
         pid = words.paper_id(p)
         if only and pid not in only:
             continue
@@ -271,11 +379,20 @@ def main():
             # numbers side by side too.
             first = next((i for i in range(len(text) - 1, -1, -1) if any(KEY_HEADING.match(line.strip()) for line in text[i])), len(text) - 6)
             pages, text = pages[first:], text[first:]
-        elif p['key'] and WORKED.search(p['key']):
-            kp = os.path.join(keywords.KEYS, keywords.key_id(p['key']), 'words.json')
-            if not os.path.exists(kp):
-                print('%-28s key not read yet' % pid)
-                continue
+        elif p['key'] and (WORKED.search(p['key']) or BOOK.search(p['key']) or GRID.search(p['key'])):
+            if GRID.search(p['key']):
+                grid = os.path.join(keywords.KEYS, keywords.key_id(p['key']), 'grid.json')
+                found = {int(k): v for k, v in json.load(open(grid)).get(str(p['year']), {}).items()} if os.path.exists(grid) else {}
+                disagree = {}
+            else:
+                found, disagree = o_level(p, manifest)
+            found.update({int(k): v for k, v in manual.get(pid, {}).items()})
+            json.dump({str(k): v for k, v in sorted(found.items())}, open(os.path.join(WORK, pid, 'answers.json'), 'w'))
+            missing = sorted(set(range(1, 41)) - set(found))
+            disagree = {n: v for n, v in disagree.items() if str(n) not in manual.get(pid, {})}
+            print('%-28s %2d answers%s%s' % (pid, len(found), ('  missing %s' % missing) if missing else '',
+                                             ('  DISAGREE: %s' % ', '.join('%d %s' % (n, '/'.join(v)) for n, v in sorted(disagree.items()))) if disagree else ''), flush=True)
+            continue
             found = from_worked(json.load(open(kp, encoding='utf-8')))
             from_table.conflicts = {}
             guessed = False

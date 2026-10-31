@@ -58,7 +58,9 @@ def crop_paper(pid):
 
     def page(p):
         if p not in images:
-            img = cv2.imread(os.path.join(d, 'p%02d.png' % p), cv2.IMREAD_GRAYSCALE)
+            # With a student's writing taken off, where unwrite.py found some.
+            clean = os.path.join(d, 'p%02d_clean.png' % p)
+            img = cv2.imread(clean if os.path.exists(clean) else os.path.join(d, 'p%02d.png' % p), cv2.IMREAD_GRAYSCALE)
             h, w = img.shape
             junk = list(furniture[p]) + [l for l in questions.lines(pages[p])
                                          if (l[0][2] < 0.08 or l[0][4] > 0.8) and JUNK.search(questions.text(l))]
