@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ground">#FF161412</color>
+    <!-- The app's ground in the light theme, under the window before Compose draws. -->
+    <color name="ground">#FFFFFAF5</color>
     <color name="icon_ground">#FF161412</color>
 </resources>

@@ -31,6 +31,12 @@ import dev.olaf.paperzero.ui.SubjectTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import dev.olaf.paperzero.ui.StartupScreen
+import kotlinx.coroutines.delay
 
 /** [content] in the colours of the science a sitting's questions are all from, if they are. */
 @Composable
@@ -42,6 +48,9 @@ private fun SessionTheme(app: PaperZeroApplication, sessionId: Long, content: @C
     SubjectTheme(subject, content = content)
 }
 
+/** How long Olaf greets on a fresh start. */
+private const val STARTUP_MS = 1600L
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -49,6 +58,16 @@ class MainActivity : ComponentActivity() {
         val app = application as PaperZeroApplication
         setContent {
             PaperTheme {
+                // A fresh start greets with Olaf for a moment; coming back to the app doesn't.
+                var greeting by rememberSaveable { mutableStateOf(savedInstanceState == null) }
+                LaunchedEffect(Unit) {
+                    delay(STARTUP_MS)
+                    greeting = false
+                }
+                if (greeting) {
+                    StartupScreen()
+                    return@PaperTheme
+                }
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val nav = rememberNavController()
                     val onTopic: (Subject, Int) -> Unit = { s, t -> nav.navigate("feed/${s.name}?topic=$t") }

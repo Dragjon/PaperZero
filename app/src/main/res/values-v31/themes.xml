@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The system splash shows chalk Olaf at his desk where the startup screen draws him (on the
+         ground of the theme in use), so one hands over to the other without a jump. -->
+    <style name="Theme.PaperZero" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ground</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">@color/ground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_olaf</item>
+    </style>
+</resources>

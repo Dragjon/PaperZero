@@ -52,7 +52,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -123,10 +122,8 @@ fun HomeScreen(
                     Spacer(Modifier.height(8.dp))
                     ChalkOlaf(Modifier.fillMaxWidth().height(170.dp))
                     // One of his lines, a new one each time Home is opened afresh.
-                    val quotes = stringArrayResource(R.array.olaf_quotes)
-                    val quote = rememberSaveable { quotes.indices.random() }
                     Text(
-                        "“${quotes[quote.coerceIn(quotes.indices)]}”",
+                        "“${rememberOlafQuote()}”",
                         style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
