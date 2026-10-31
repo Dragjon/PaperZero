@@ -52,7 +52,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -120,6 +122,23 @@ fun HomeScreen(
                     Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))
                     ChalkOlaf(Modifier.fillMaxWidth().height(170.dp))
+                    // One of his lines, a new one each time Home is opened afresh.
+                    val quotes = stringArrayResource(R.array.olaf_quotes)
+                    val quote = rememberSaveable { quotes.indices.random() }
+                    Text(
+                        "“${quotes[quote.coerceIn(quotes.indices)]}”",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 24.dp, end = 24.dp),
+                    )
+                    Text(
+                        "— Olaf",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    )
                 }
             }
             if (subjects.isEmpty()) {

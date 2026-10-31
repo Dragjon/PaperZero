@@ -115,4 +115,13 @@
     <string name="stats_topics_note">Topics follow the BPGHS notes\' chapters. They\'re matched from each question\'s words, so now and then one is filed under a neighbouring chapter.</string>
     <string name="stats_topic_line">%1$d answers · %2$d of %3$d questions tried</string>
     <string name="stats_topic_untried">Not tried yet · %d questions</string>
+
+    <!-- Olaf's lines from Frozen, one under him on Home. -->
+    <string-array name="olaf_quotes">
+        <item>Some people are worth melting for.</item>
+        <item>Hi, I\'m Olaf, and I like warm hugs!</item>
+        <item>Love is putting someone else\'s needs before yours.</item>
+        <item>Watch out for my butt!</item>
+        <item>Oh look, I\'ve been impaled.</item>
+    </string-array>
 </resources>
