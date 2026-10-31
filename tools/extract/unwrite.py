@@ -4,15 +4,16 @@ Oscanner's handwriting network (core/imaging/src/main/assets/clean/hand.onnx).
     python unwrite.py HAND_ONNX [PROCESSES] [paper-id ...]
 
 For each page image of each paper (all of them, or those named): finds the writing, and if there's
-more than a speck, writes pNN_clean.png beside pNN.png with it filled in with the paper around it,
-which crop.py then cuts from. Printed words (where words.json has them) are never taken out, so a
-circled letter keeps its print. Prints how much each paper had.
+more than a speck, writes pNN_unwritten.png beside pNN.png with it filled in with the paper around
+it, which crop.py cuts the questions content/unwrite.json names from. Printed words (where
+words.json has them) are never taken out, so a circled letter keeps its print. Prints how much
+each paper had.
 
     python unwrite.py HAND_ONNX [PROCESSES] --score [paper-id ...]
 
 Only finds it, in each cut question (work/<id>/q), into work/<id>/marks.json: {question: pixels of
 writing}, to look over by eye. (Taking it off also takes off thin print, a digit or a diagram's
-line, so that's not done for the pack.)
+line, so it's only used for questions looked over by eye: content/unwrite.json.)
 """
 import json
 import os
@@ -108,7 +109,7 @@ def job(args):
     share = []
     for i, ws in enumerate(pages):
         gray = cv2.imread(os.path.join(d, 'p%02d.png' % i), cv2.IMREAD_GRAYSCALE)
-        out = os.path.join(d, 'p%02d_clean.png' % i)
+        out = os.path.join(d, 'p%02d_unwritten.png' % i)
         if os.path.exists(out):
             os.remove(out)
         if gray is None:

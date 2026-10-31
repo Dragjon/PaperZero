@@ -9,6 +9,8 @@ covers. The same rules as Oscanner's "Split into questions" (core/data Questions
 pages: a list per page of [text, left, top, right, bottom] in page fractions.
 """
 import collections
+import json
+import os
 import re
 
 # ---------------------------------------------------------------- lines and numbers
@@ -22,6 +24,8 @@ later_part = re.compile(r'^\d{1,2}[.)]?\(?[b-h]\)?')
 
 MARGIN = 0.12      # a question's number starts within this share of the text's width from its left
 COLUMN = 0.04      # ...and within this of the numbers' column (page widths)
+FOOT_LINE = 0.86     # a line of a few words below this is the page's foot
+LAST_NUMBER = 40    # a Paper 1's last question
 MAX_GAP = 3        # numbers that may be missed between two questions found
 GAP_COST = 0.5     # what each missed number costs the run
 
@@ -89,6 +93,9 @@ def candidates(page, words):
             continue
         n = number(line)
         if n is None:
+            continue
+        # A page number in the foot ("2  2016 Paper1"), not a question.
+        if min(w[2] for w in line) > FOOT_LINE and len(line) <= 3:
             continue
         # Left of the page's text, not of the page: a scanned book's pages sit a little left or
         # right of each other.
@@ -202,6 +209,22 @@ def misread(pages, found, column):
             elif len(flush) == 1 and b['number'] - a['number'] == 2:
                 out.append(flush[0])
         out.append(b)
+    # And after the last one found ("4o 40" on the last page), up to the paper's usual 40.
+    while out[-1]['number'] < LAST_NUMBER:
+        a, want, hit = out[-1], out[-1]['number'] + 1, None
+        for p in range(a['page'], min(a['page'] + 2, len(pages))):
+            ws = pages[p]
+            if not ws:
+                continue
+            left = min(w[1] for w in ws)
+            for line in lines(ws):
+                top = min(w[2] for w in line)
+                if (p, top) > (a['page'], a['top']) and abs(line[0][1] - left - column) < COLUMN and len(line) >= 2                         and reads_as(line[0][0], want) and not hit:
+                    hit = dict(page=p, number=want, top=top, lh=sum(w[4] - w[2] for w in line) / len(line),
+                               left=line[0][1] - left, part=False)
+        if not hit:
+            break
+        out.append(hit)
     return out
 
 
@@ -246,8 +269,32 @@ def furniture(pages):
     return ls, out
 
 
-def parts(pages):
+MANUAL = os.path.join(os.path.dirname(__file__), '..', '..', 'content', 'manual_cuts.json')
+
+
+def manual(pid):
+    """Question starts set by eye (content/manual_cuts.json, {paper: {question: [page, top] or
+    null}}) where OCR missed or misplaced a number: null drops a start found; "skip": pages
+    to leave out; "feet": {page: where its foot starts}, for crop.py; and "stems": {question:
+    [[page, top, bottom], ...]}, what it shares with the question before ("Refer to Fig. 13 to
+    answer questions 13 and 14")."""
+    return json.load(open(MANUAL, encoding='utf-8')).get(pid, {}) if os.path.exists(MANUAL) else {}
+
+
+def parts(pages, by_eye=None):
+    by_eye = dict(by_eye or {})
+    # A page scanned twice: left out ("skip": [page, ...]).
+    skip = set(by_eye.pop('skip', []))
+    by_eye.pop('feet', None)
+    stems = by_eye.pop('stems', {})
+    pages = [[] if i in skip else ws for i, ws in enumerate(pages)]
     found = starts(pages)
+    if by_eye:
+        lh = sorted(x['lh'] for x in found)[len(found) // 2] if found else 0.012
+        found = [x for x in found if str(x['number']) not in by_eye]
+        found += [dict(page=p, number=int(n), top=top, lh=lh, left=0, inner=0, part=False)
+                  for n, v in by_eye.items() if v for p, top in [v]]
+        found.sort(key=lambda x: (x['page'], x['top']))
     if not found:
         return [], {}
     ls, furn = furniture(pages)
@@ -364,4 +411,5 @@ def parts(pages):
         for n in range(lo + 1, hi + 1):
             if stem:
                 shared[n] = stem
+    shared.update({int(n): [tuple(x) for x in v] for n, v in stems.items()})
     return out, shared

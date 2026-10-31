@@ -88,9 +88,9 @@ def tag(text, vocab):
     return tags, sure, scored
 
 
-def question_texts(pages):
+def question_texts(pages, pid=None):
     """Each question's words, stem and all, from where crop.py cuts it."""
-    found, shared = questions.parts(pages)
+    found, shared = questions.parts(pages, questions.manual(pid) if pid else None)
     out = collections.defaultdict(list)
 
     def inside(p, top, bottom):
@@ -118,7 +118,7 @@ def main():
         names = TOPICS[p['subject']]
         mine = overrides.get(pid, {})
         out = {}
-        for n, text in sorted(question_texts(json.load(open(path, encoding='utf-8'))).items()):
+        for n, text in sorted(question_texts(json.load(open(path, encoding='utf-8')), pid).items()):
             if str(n) in mine:
                 out[str(n)] = [names.index(t) for t in mine[str(n)]]
                 counts['by eye'] += 1
