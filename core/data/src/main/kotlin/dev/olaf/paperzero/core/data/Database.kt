@@ -10,6 +10,8 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 /** How a set of questions is done. */
@@ -50,6 +52,19 @@ data class AnswerEntity(
     val at: Long,
 )
 
+/** A question liked, to find again. */
+@Entity(tableName = "likes")
+data class LikeEntity(@PrimaryKey val questionKey: String, val at: Long)
+
+/** A comment on a question: a note to self, kept on the phone and seen by no one else. */
+@Entity(tableName = "comments", indices = [Index("questionKey")])
+data class CommentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val questionKey: String,
+    val text: String,
+    val at: Long,
+)
+
 @Dao
 interface PaperDao {
     @Insert
@@ -86,14 +101,43 @@ interface PaperDao {
     /** Every answer ever given, oldest first: for progress and for what still needs work. */
     @Query("SELECT * FROM answers ORDER BY at")
     fun allAnswers(): Flow<List<AnswerEntity>>
+
+    @Insert(onConflict = androidx.room.OnConflictStrategy.REPLACE)
+    suspend fun like(like: LikeEntity)
+
+    @Query("DELETE FROM likes WHERE questionKey = :key")
+    suspend fun unlike(key: String)
+
+    /** Liked questions, the newest like first. */
+    @Query("SELECT * FROM likes ORDER BY at DESC")
+    fun likes(): Flow<List<LikeEntity>>
+
+    @Insert
+    suspend fun insert(comment: CommentEntity): Long
+
+    @Query("DELETE FROM comments WHERE id = :id")
+    suspend fun deleteComment(id: Long)
+
+    /** Every comment, oldest first. */
+    @Query("SELECT * FROM comments ORDER BY at")
+    fun comments(): Flow<List<CommentEntity>>
 }
 
-@Database(entities = [SessionEntity::class, AnswerEntity::class], version = 1, exportSchema = true)
+@Database(entities = [SessionEntity::class, AnswerEntity::class, LikeEntity::class, CommentEntity::class], version = 2, exportSchema = true)
 abstract class PaperDatabase : RoomDatabase() {
     abstract fun dao(): PaperDao
 
     companion object {
+        /** 2: likes and comments. */
+        private val TWO = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `likes` (`questionKey` TEXT NOT NULL, `at` INTEGER NOT NULL, PRIMARY KEY(`questionKey`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `comments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `questionKey` TEXT NOT NULL, `text` TEXT NOT NULL, `at` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_comments_questionKey` ON `comments` (`questionKey`)")
+            }
+        }
+
         fun create(context: Context): PaperDatabase =
-            Room.databaseBuilder(context, PaperDatabase::class.java, "paperzero.db").build()
+            Room.databaseBuilder(context, PaperDatabase::class.java, "paperzero.db").addMigrations(TWO).build()
     }
 }

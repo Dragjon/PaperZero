@@ -21,7 +21,11 @@ import dev.olaf.paperzero.ui.MistakesScreen
 import dev.olaf.paperzero.ui.PapersScreen
 import dev.olaf.paperzero.ui.QuizScreen
 import dev.olaf.paperzero.ui.ResultScreen
-import dev.olaf.paperzero.ui.ScrollScreen
+import dev.olaf.paperzero.ui.FeedScreen
+import dev.olaf.paperzero.ui.FeedSource
+import dev.olaf.paperzero.ui.SavedFeedScreen
+import dev.olaf.paperzero.ui.SavedScreen
+import dev.olaf.paperzero.ui.SavedTab
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,11 +43,35 @@ class MainActivity : ComponentActivity() {
                                 app.progresses,
                                 onSubject = { nav.navigate("papers/${it.name}") },
                                 onMistakes = { nav.navigate("mistakes") },
-                                onScroll = { nav.navigate("scroll/${it.name}") },
+                                onScroll = { nav.navigate("feed/${it.name}") },
+                                onSaved = { nav.navigate("saved/${it.name}") },
+                                onOpenSaved = { tab, i -> nav.navigate("savedfeed/${tab.name}/$i") },
                             )
                         }
-                        composable("scroll/{subject}", listOf(navArgument("subject") { type = NavType.StringType })) { entry ->
-                            ScrollScreen(app.pack, app.progresses, Subject.valueOf(entry.arguments!!.getString("subject")!!), onClose = { nav.popBackStack() })
+                        composable("feed/{subject}", listOf(navArgument("subject") { type = NavType.StringType })) { entry ->
+                            val subject = Subject.valueOf(entry.arguments!!.getString("subject")!!)
+                            FeedScreen(app.pack, app.progresses, FeedSource.Of(subject), onClose = { nav.popBackStack() })
+                        }
+                        composable("saved/{tab}", listOf(navArgument("tab") { type = NavType.StringType })) { entry ->
+                            SavedScreen(
+                                app.pack,
+                                app.progresses,
+                                SavedTab.valueOf(entry.arguments!!.getString("tab")!!),
+                                onBack = { nav.popBackStack() },
+                                onOpen = { tab, i -> nav.navigate("savedfeed/${tab.name}/$i") },
+                            )
+                        }
+                        composable(
+                            "savedfeed/{tab}/{start}",
+                            listOf(navArgument("tab") { type = NavType.StringType }, navArgument("start") { type = NavType.IntType }),
+                        ) { entry ->
+                            SavedFeedScreen(
+                                app.pack,
+                                app.progresses,
+                                SavedTab.valueOf(entry.arguments!!.getString("tab")!!),
+                                entry.arguments!!.getInt("start"),
+                                onClose = { nav.popBackStack() },
+                            )
                         }
                         composable("papers/{subject}", listOf(navArgument("subject") { type = NavType.StringType })) { entry ->
                             PapersScreen(

@@ -108,7 +108,9 @@ def margin_numbers(gray, words):
         piece = gray[max(0, y0 - pad):y1 + pad, max(0, x0 - pad):x1 + pad]
         piece = cv2.copyMakeBorder(piece, pad, pad, pad, pad, cv2.BORDER_CONSTANT, value=255)
         result, _ = ocr()(piece, use_det=False, use_cls=False, use_rec=True)
-        read = (result[0][0] if result else '').strip().rstrip('.')
+        # (text, score), or (box, text, score) from older RapidOCR, which reads with detection anyway.
+        first = result[0] if result else ['']
+        read = str(first[1] if len(first) == 3 else first[0]).strip().rstrip('.')
         if re.fullmatch(r'\d{1,2}', read):
             out.append([read, x0 / w, y0 / h, x1 / w, y1 / h])
     return out

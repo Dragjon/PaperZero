@@ -33,13 +33,18 @@ import dev.olaf.paperzero.core.data.Subject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** A picture from the pack, decoded off the main thread; null until it's ready. */
+/** A picture from the pack, decoded off the main thread ([sample] times smaller, for a tile); null until it's ready. */
 @Composable
-fun rememberAssetImage(path: String?): State<ImageBitmap?> {
+fun rememberAssetImage(path: String?, sample: Int = 1): State<ImageBitmap?> {
     val assets = LocalContext.current.assets
-    return produceState<ImageBitmap?>(null, path) {
+    return produceState<ImageBitmap?>(null, path, sample) {
         value = path?.let {
-            withContext(Dispatchers.IO) { runCatching { assets.open(it).use { s -> BitmapFactory.decodeStream(s)?.asImageBitmap() } }.getOrNull() }
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                    assets.open(it).use { s -> BitmapFactory.decodeStream(s, null, options)?.asImageBitmap() }
+                }.getOrNull()
+            }
         }
     }
 }

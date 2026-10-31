@@ -2,6 +2,7 @@ package dev.olaf.paperzero.core.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlin.random.Random
 
 /** How a subject is going: questions tried at least once, and of those, right the last time. */
@@ -55,10 +56,10 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
     }
 
     /**
-     * A feed of [subject]'s questions to scroll through without end: answers given on the way
-     * are kept like any others. The questions themselves are picked as it goes ([feed]).
+     * A feed of questions to scroll through: answers given on the way are kept like any others.
+     * The questions themselves are picked as it goes ([feed]).
      */
-    suspend fun startScroll(subject: Subject, title: String): Long =
+    suspend fun startScroll(title: String): Long =
         dao.insert(SessionEntity(mode = Mode.Practice.name, paperId = null, title = title, keys = "", startedAt = now()))
 
     /** [subject]'s questions in a fresh order: ones not yet tried first. */
@@ -93,6 +94,22 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
         dao.finish(sessionId, now(), score, keys.size)
         return Best(score, keys.size)
     }
+
+    /** Liked questions' keys, the newest like first. */
+    val liked: Flow<List<String>> = dao.likes().map { list -> list.map { it.questionKey } }
+
+    /** Comments, by question, oldest first; and the questions commented on, the latest first. */
+    val comments: Flow<Map<String, List<CommentEntity>>> = dao.comments().map { list -> list.groupBy { it.questionKey } }
+
+    val commented: Flow<List<String>> = dao.comments().map { list -> list.sortedByDescending { it.at }.map { it.questionKey }.distinct() }
+
+    suspend fun setLiked(key: String, liked: Boolean) = if (liked) dao.like(LikeEntity(key, now())) else dao.unlike(key)
+
+    suspend fun comment(key: String, text: String) {
+        if (text.isNotBlank()) dao.insert(CommentEntity(questionKey = key, text = text.trim(), at = now()))
+    }
+
+    suspend fun deleteComment(id: Long) = dao.deleteComment(id)
 
     /** Throws away a sitting that was started but not wanted. */
     suspend fun discard(sessionId: Long) {

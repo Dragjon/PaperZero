@@ -23,8 +23,26 @@
     <string name="mistakes_none">No mistakes to fix. Wrong answers come here to practise again.</string>
     <string name="practise_mistakes">Practise mistakes</string>
     <string name="doomscroll">Doomscroll</string>
-    <string name="doomscroll_description">Endless questions, one a screen. Swipe past, or tap a letter to try one.</string>
-    <string name="scroll_hint">Swipe up for the next</string>
+    <string name="doomscroll_description">An endless feed of a subject\'s questions. Like them, comment on them, or tap a letter to try one.</string>
+    <string name="like">Like</string>
+    <string name="unlike">Unlike</string>
+    <string name="comments">Comments</string>
+    <string name="comments_private">Comments are private: only you can see them, and they stay on this phone.</string>
+    <string name="comments_none">No comments yet. Leave yourself a note: a hint, a mistake you made, a formula.</string>
+    <string name="comment_hint">Add a comment…</string>
+    <string name="send">Send</string>
+    <string name="delete_comment">Delete comment</string>
+    <plurals name="view_comments">
+        <item quantity="one">View %d comment</item>
+        <item quantity="other">View all %d comments</item>
+    </plurals>
+    <string name="liked">Liked</string>
+    <string name="commented">Commented</string>
+    <string name="saved">Saved</string>
+    <string name="liked_none">Questions you like show up here. Tap the heart under one in your feed.</string>
+    <string name="commented_none">Questions you comment on show up here, with your notes.</string>
+    <string name="see_all">See all</string>
+    <string name="feed_for">Feed</string>
     <string name="scroll_score">%1$d/%2$d right</string>
 
     <string name="filter_all">All</string>
