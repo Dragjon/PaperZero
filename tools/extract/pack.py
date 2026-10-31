@@ -4,10 +4,13 @@
 
 OUT_DIR/index.json lists the papers; OUT_DIR/<id>/paper.json has each question's answer and
 image (and explanation image, when there's one); the images are gray WebP. A question goes in
-only with both its picture and its answer; a paper only with most of its questions.
+only with both its picture and its answer, and not when content/review.json (questions looked over
+by eye) says its picture gives the answer away or holds another question too; a paper only with
+enough questions.
 """
 import json
 import os
+import shutil
 import sys
 
 import cv2
@@ -17,7 +20,7 @@ import words
 WORK = words.WORK
 WIDTH = 1100        # widest a question's picture is kept (pixels): plenty for a phone, zoomed in
 QUALITY = 80
-MIN_QUESTIONS = 30  # a paper with fewer good questions than this is left out, to look at again
+MIN_QUESTIONS = 20  # a paper with fewer good questions than this is left out, to look at again
 
 
 def webp(src, dst):
@@ -31,6 +34,8 @@ def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), '..', '..', 'content', 'pack')
     os.makedirs(out, exist_ok=True)
     index = []
+    path = os.path.join(os.path.dirname(__file__), '..', '..', 'content', 'review.json')
+    review = json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {}
     for p in json.load(open(os.path.join(WORK, 'manifest.json'), encoding='utf-8')):
         pid = words.paper_id(p)
         d = os.path.join(WORK, pid)
@@ -39,11 +44,14 @@ def main():
         if not (os.path.isdir(qdir) and os.path.exists(apath)):
             continue
         answers = json.load(open(apath))
+        left_out = {n for v in review.get(pid, {}).values() for n in v}
         qs = []
+        # Afresh: a question left out since the last pack mustn't stay behind in it.
+        shutil.rmtree(os.path.join(out, pid), ignore_errors=True)
         os.makedirs(os.path.join(out, pid), exist_ok=True)
         for n in range(1, 61):
             src = os.path.join(qdir, '%02d.png' % n)
-            if not os.path.exists(src) or str(n) not in answers:
+            if not os.path.exists(src) or str(n) not in answers or n in left_out:
                 continue
             webp(src, os.path.join(out, pid, '%02d.webp' % n))
             q = {'n': n, 'answer': answers[str(n)], 'image': '%02d.webp' % n}

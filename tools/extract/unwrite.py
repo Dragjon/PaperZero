@@ -7,6 +7,12 @@ For each page image of each paper (all of them, or those named): finds the writi
 more than a speck, writes pNN_clean.png beside pNN.png with it filled in with the paper around it,
 which crop.py then cuts from. Printed words (where words.json has them) are never taken out, so a
 circled letter keeps its print. Prints how much each paper had.
+
+    python unwrite.py HAND_ONNX [PROCESSES] --score [paper-id ...]
+
+Only finds it, in each cut question (work/<id>/q), into work/<id>/marks.json: {question: pixels of
+writing}, to look over by eye. (Taking it off also takes off thin print, a digit or a diagram's
+line, so that's not done for the pack.)
 """
 import json
 import os
@@ -117,11 +123,33 @@ def job(args):
     return pid, share
 
 
+def score_job(args):
+    """How much writing each of a paper's cut questions has (pixels in strokes of some size)."""
+    onnx, pid = args
+    q = os.path.join(WORK, pid, 'q')
+    session = network(onnx)
+    out = {}
+    for f in sorted(os.listdir(q)):
+        if not f[:2].isdigit():
+            continue
+        gray = cv2.imread(os.path.join(q, f), cv2.IMREAD_GRAYSCALE)
+        mask = writing(probability(session, cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)), gray, [])
+        n, _, stats, _ = cv2.connectedComponentsWithStats((mask > 0).astype(np.uint8))
+        out[str(int(f[:2]))] = int(sum(stats[i][4] for i in range(1, n) if stats[i][4] > 60))
+    json.dump(out, open(os.path.join(WORK, pid, 'marks.json'), 'w'), indent=0)
+    return pid, out
+
+
 def main():
     onnx = sys.argv[1]
-    args = sys.argv[2:]
+    args = [a for a in sys.argv[2:] if a != '--score']
     processes = int(args.pop(0)) if args and args[0].isdigit() else 24
     ids = args or sorted(x for x in os.listdir(WORK) if os.path.exists(os.path.join(WORK, x, 'words.json')))
+    if '--score' in sys.argv:
+        with Pool(processes) as pool:
+            for pid, out in pool.imap_unordered(score_job, [(onnx, pid) for pid in ids]):
+                print('%-28s %d of %d questions written on' % (pid, sum(v > 0 for v in out.values()), len(out)), flush=True)
+        return
     with Pool(processes) as pool:
         for pid, share in pool.imap_unordered(job, [(onnx, pid) for pid in ids]):
             cleaned = [i for i, s in enumerate(share) if s > SPECK]

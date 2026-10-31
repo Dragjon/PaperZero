@@ -1,10 +1,14 @@
 """words.py and keywords.py for many papers at once, for a machine with cores to spare.
 
-    python farm.py BACKUP_DIR [PROCESSES] [--sharp | --margins paper-id ...]
+    python farm.py BACKUP_DIR [PROCESSES] [--sharp | --margins paper-id ... | --upright paper-id ...]
 
 --sharp reads the O-Level keys again, larger (SHARP dpi), a page a job, into
 work/keys/<key>/words<SHARP>.json: a second reading for answers.py to fill the first's gaps
-from and check it against.
+from and check it against. --margins does margins.py's work for the papers named.
+
+--upright is for papers scanned two pages to a sheet, turned on their side (Chemistry
+2005-2008): each sheet is turned whichever way OCR reads better, cut into its two pages, and
+read again; the sheets as they were are kept in work/<id>/sheets/.
 
 Each process reads one paper or key at a time, OCR limited to two threads so the processes
 don't trip over each other. Skips what's already done, like the two scripts it stands for.
@@ -114,11 +118,66 @@ def margins_job(args):
         return words.paper_id(p), 'FAILED %s' % e
 
 
+def legibility(gray):
+    """How much OCR reads in [gray], smaller: confident letters."""
+    small = cv2.resize(gray, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+    result, _ = words.ocr()(small)
+    return sum(len(text) * float(score) for _, text, score in result or [])
+
+
+def upright_job(args):
+    sheet = args
+    words._ocr = words._ocr or ocr_limited()
+    gray = cv2.imread(sheet, cv2.IMREAD_GRAYSCALE)
+    if gray.shape[1] > gray.shape[0]:
+        turned = [gray]
+    else:
+        turned = [cv2.rotate(gray, cv2.ROTATE_90_COUNTERCLOCKWISE), cv2.rotate(gray, cv2.ROTATE_90_CLOCKWISE)]
+    best = max(turned, key=legibility) if len(turned) > 1 else turned[0]
+    half = best.shape[1] // 2
+    pages = [best[:, :half], best[:, half:]]
+    return sheet, [(p, words.unglue(words.ocr_words(p))) for p in pages]
+
+
+def upright(pids, processes):
+    jobs = []
+    for pid in pids:
+        d = os.path.join(words.WORK, pid)
+        kept = os.path.join(d, 'sheets')
+        if not os.path.isdir(kept):
+            os.makedirs(kept)
+            for f in sorted(os.listdir(d)):
+                if f.startswith('p') and f.endswith('.png'):
+                    os.replace(os.path.join(d, f), os.path.join(kept, f))
+        jobs += [os.path.join(kept, f) for f in sorted(os.listdir(kept)) if f.endswith('.png') and '_' not in f]
+    done = {}
+    with Pool(processes) as pool:
+        for sheet, halves in pool.imap_unordered(upright_job, jobs):
+            done[sheet] = halves
+            print(os.path.relpath(sheet, words.WORK), flush=True)
+    for pid in pids:
+        d = os.path.join(words.WORK, pid)
+        kept = os.path.join(d, 'sheets')
+        out = []
+        for f in sorted(os.listdir(kept)):
+            out += done.get(os.path.join(kept, f), [])
+        for f in os.listdir(d):
+            if f.startswith('p') and f.endswith('.png'):
+                os.remove(os.path.join(d, f))
+        for i, (img, _) in enumerate(out):
+            cv2.imwrite(os.path.join(d, 'p%02d.png' % i), img)
+        json.dump([ws for _, ws in out], open(os.path.join(d, 'words.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+        print(pid, len(out), 'pages', flush=True)
+
+
 def main():
     root = sys.argv[1].replace(chr(92), '/').rstrip('/') + '/Science/'
     args = [a for a in sys.argv[2:] if not a.startswith('--')]
     processes = int(args[0]) if args and args[0].isdigit() else 24
     papers = json.load(open(os.path.join(words.WORK, 'manifest.json'), encoding='utf-8'))
+    if '--upright' in sys.argv:
+        upright(args[1:] if args and args[0].isdigit() else args, processes)
+        return
     if '--margins' in sys.argv:
         named = set(args[1:] if args and args[0].isdigit() else args)
         jobs = [(root, p) for p in papers if words.paper_id(p) in named]

@@ -72,9 +72,9 @@ def number(line):
 
 
 def text_left(words):
-    """Where a page's text starts, a speck or a scanner's mark at its edge aside: the furthest left
-    that three words or more start at."""
-    lefts = sorted(w[1] for w in words)
+    """Where a page's text starts, a speck or a scanner's mark at its edge aside (a book's gutter
+    reads as a column of "1"s): the furthest left that three words of two letters or more start at."""
+    lefts = sorted(w[1] for w in words if len(clean(w[0])) >= 2) or sorted(w[1] for w in words)
     return next((x for i, x in enumerate(lefts) if i + 2 < len(lefts) and lefts[i + 2] < x + 0.01), lefts[0])
 
 
