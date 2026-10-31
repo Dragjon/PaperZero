@@ -24,6 +24,8 @@ cv2.setNumThreads(1)
 WORK = os.path.join(os.path.dirname(__file__), '..', '..', 'work')
 THREADS = 2
 SPECK = 0.0004   # less of the page than this marked as writing: left as it is
+TILE = 768       # the network's input at most, a side (pixels), as the app's
+MARGIN = 64      # what each tile sees past its share
 _session = None
 
 
@@ -39,13 +41,23 @@ def network(path):
 
 
 def probability(session, rgb):
+    """In tiles, as the app does (HandMask.kt): a whole page at once wants gigabytes. Each tile
+    reaches MARGIN past its share, so a stroke cut at its edge is judged with what's beside it."""
     h, w = rgb.shape[:2]
-    # Sizes divisible by 16 for the network's four halvings.
-    ph, pw = (16 - h % 16) % 16, (16 - w % 16) % 16
-    x = cv2.copyMakeBorder(rgb, 0, ph, 0, pw, cv2.BORDER_REPLICATE)
-    x = x.astype(np.float32).transpose(2, 0, 1)[None] / 255
-    logit = session.run(None, {'rgb': x})[0][0, 0, :h, :w]
-    return 1 / (1 + np.exp(-logit))
+    out = np.zeros((h, w), np.float32)
+    for y in range(0, h, TILE - 2 * MARGIN):
+        for x in range(0, w, TILE - 2 * MARGIN):
+            y0, x0 = max(0, y - MARGIN), max(0, x - MARGIN)
+            tile = rgb[y0:min(h, y + TILE - MARGIN), x0:min(w, x + TILE - MARGIN)]
+            th, tw = tile.shape[:2]
+            # Sizes divisible by 16 for the network's four halvings.
+            t = cv2.copyMakeBorder(tile, 0, (16 - th % 16) % 16, 0, (16 - tw % 16) % 16, cv2.BORDER_REPLICATE)
+            logit = session.run(None, {'rgb': t.astype(np.float32).transpose(2, 0, 1)[None] / 255})[0][0, 0, :th, :tw]
+            # Only the tile's own share: its margins belong to its neighbours.
+            sy, sx = y - y0, x - x0
+            share = logit[sy:sy + TILE - 2 * MARGIN, sx:sx + TILE - 2 * MARGIN]
+            out[y:y + share.shape[0], x:x + share.shape[1]] = share
+    return 1 / (1 + np.exp(-out))
 
 
 def writing(prob, gray, printed):
