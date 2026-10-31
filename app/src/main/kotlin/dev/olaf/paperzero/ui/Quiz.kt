@@ -71,6 +71,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import dev.olaf.paperzero.LocalSettings
 import dev.olaf.paperzero.R
 import dev.olaf.paperzero.core.data.Mode
 import dev.olaf.paperzero.core.data.Pack
@@ -184,7 +185,8 @@ fun QuizScreen(
                 Text(stringResource(R.string.question_of, index + 1, questions.size), style = MaterialTheme.typography.titleMedium)
                 Text(s.title, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-            if (exam) {
+            // The clock, unless it's turned off (the sitting is timed all the same).
+            if (exam && LocalSettings.current.examClock) {
                 val left = (EXAM_MS - spent).coerceAtLeast(0) / 1000
                 Text(
                     "%d:%02d".format(left / 60, left % 60),
@@ -293,13 +295,14 @@ fun QuizScreen(
     }
     zoomed?.let { path ->
         Dialog(onDismissRequest = { zoomed = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Box(Modifier.fillMaxSize().background(Color.White)) {
+            val picture = picture()
+            Box(Modifier.fillMaxSize().background(picture.ground)) {
                 ZoomBox(Modifier.fillMaxSize()) {
                     val image by rememberAssetImage(path)
-                    image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().align(Alignment.Center)) }
+                    image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Fit, colorFilter = picture.filter, modifier = Modifier.fillMaxSize().align(Alignment.Center)) }
                 }
                 IconButton(onClick = { zoomed = null }, modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)) {
-                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close), tint = Color.Black)
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close), tint = picture.ink)
                 }
             }
         }
@@ -310,7 +313,8 @@ fun QuizScreen(
 @Composable
 private fun QuestionPicture(path: String, modifier: Modifier = Modifier) {
     val image by rememberAssetImage(path)
-    Surface(shape = MaterialTheme.shapes.large, color = Color.White, modifier = modifier.fillMaxWidth()) {
+    val picture = picture()
+    Surface(shape = MaterialTheme.shapes.large, color = picture.ground, modifier = modifier.fillMaxWidth()) {
         val shown = image
         if (shown == null) {
             Box(Modifier.fillMaxWidth().height(200.dp))
@@ -319,6 +323,7 @@ private fun QuestionPicture(path: String, modifier: Modifier = Modifier) {
                 shown,
                 contentDescription = null,
                 contentScale = ContentScale.FillWidth,
+                colorFilter = picture.filter,
                 modifier = Modifier.fillMaxWidth().aspectRatio(shown.width.toFloat() / shown.height).padding(8.dp),
             )
         }

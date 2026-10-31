@@ -146,6 +146,35 @@ interface PaperDao {
     /** Time spent, every day and science, oldest first. */
     @Query("SELECT * FROM study ORDER BY day")
     fun study(): Flow<List<StudyEntity>>
+
+    @Query("DELETE FROM answers")
+    suspend fun deleteAllAnswers()
+
+    @Query("DELETE FROM sessions")
+    suspend fun deleteAllSessions()
+
+    @Query("DELETE FROM study")
+    suspend fun deleteAllStudy()
+
+    @Query("DELETE FROM likes")
+    suspend fun deleteAllLikes()
+
+    @Query("DELETE FROM comments")
+    suspend fun deleteAllComments()
+
+    /** Every answer, sitting and second studied gone: a fresh start. Likes and comments stay. */
+    @Transaction
+    suspend fun resetProgress() {
+        deleteAllAnswers()
+        deleteAllSessions()
+        deleteAllStudy()
+    }
+
+    @Transaction
+    suspend fun deleteSaved() {
+        deleteAllLikes()
+        deleteAllComments()
+    }
 }
 
 @Database(

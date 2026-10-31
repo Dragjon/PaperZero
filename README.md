@@ -2,7 +2,8 @@
 
 Paper 1 (multiple choice) questions from O-Level and school prelims, in Biology, Chemistry and
 Physics, to practise again and again. A sibling of [Oscanner](https://github.com/Dragjon/Oscanner),
-with the same philosophy: fully offline, no account, no ads, no tracking, no network permission.
+with the same philosophy: offline, no account, no ads, no tracking. (The one thing that goes online
+is science memes in the feeds, off unless you turn them on.)
 
 - **Doomscroll**: a science's questions as an endless feed of posts. Swipe past, or tap A to D to
   try one and see at once if you're right.
@@ -13,12 +14,23 @@ with the same philosophy: fully offline, no account, no ads, no tracking, no net
   tag for a feed of only that topic.
 - **Papers**: each O-Level year and school prelim, done as **Practise** (each answer marked at once,
   with the working where there is some) or **Exam** (the whole paper in an hour, marked at the end).
+- **Timed sets**: 40 questions of a science from across its papers, in an hour, like a Paper 1.
 - **Mistakes**: a question you get wrong comes back until you get it right twice running.
 - **Stats**: time studied (this week, day by day), your streak, how often you're right, and that by
   science and by topic, weakest topics first.
 
 Each science has its own colours: Biology green, Chemistry violet, Physics blue. Olaf, in chalk,
 studies at his desk.
+
+**Settings**: theme (light, dark, as the phone) and background (warm, gray, or black for OLED);
+each science's colours or the app's orange; the accent from your wallpaper; text size; dark question
+pictures (white on black in the dark theme); the clock in exams; Olaf at start; and resetting your
+progress, or your likes and comments.
+
+**Memes** (off by default): science memes now and then between a feed's questions, rarely,
+sometimes or often, never on a beat. They come from science subreddits through
+[meme-api.com](https://github.com/D3vd/Meme_Api); NSFW and spoiler posts are skipped. This is why
+the app asks for the internet permission; nothing else uses it.
 
 ## The questions
 
@@ -33,7 +45,7 @@ schools and their publishers. They're a private content pack (`content/pack`, gi
 | `inventory.py BACKUP` | finds every Paper 1 and its answer key → `work/manifest.json` |
 | `words.py BACKUP` | renders pages and reads their words (the PDF's text, or OCR) |
 | `margins.py BACKUP` | adds question numbers OCR missed or ran into a word |
-| `crop.py` | cuts each question out (the same rules as Oscanner's Split into questions) |
+| `crop.py` | cuts each question out (the same rules as Oscanner's Split into questions), leaving off the page's foot; `content/manual_cuts.json` (private) has starts set by eye where OCR missed a number |
 | `keywords.py BACKUP` | renders and reads every answer key |
 | `grid_key.py BACKUP` | reads O-Level Biology's key, a grid of answers a year |
 | `answers.py BACKUP` | finds the answers, checking a second, sharper reading of each O-Level key against the first; `content/manual_keys.json` (private) has ones read by eye |

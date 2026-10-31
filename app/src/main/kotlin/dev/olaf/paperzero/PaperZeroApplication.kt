@@ -8,4 +8,5 @@ import dev.olaf.paperzero.core.data.Progresses
 class PaperZeroApplication : Application() {
     val pack by lazy { Pack(assets) }
     val progresses by lazy { Progresses(pack, PaperDatabase.create(this).dao()) }
+    val settings by lazy { SettingsStore(this) }
 }

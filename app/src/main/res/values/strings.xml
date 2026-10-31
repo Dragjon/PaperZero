@@ -127,4 +127,59 @@
         <item>Watch out for my butt!</item>
         <item>Oh look, I\'ve been impaled.</item>
     </string-array>
+
+    <string name="settings">Settings</string>
+    <string name="settings_look">Look</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">As the phone</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_ground">Background</string>
+    <string name="settings_ground_description">Black is for the dark theme, and saves battery on OLED screens</string>
+    <string name="ground_warm">Warm</string>
+    <string name="ground_neutral">Gray</string>
+    <string name="ground_black">Black</string>
+    <string name="settings_science_colours">Colours for each science</string>
+    <string name="settings_science_colours_description">Biology green, Chemistry violet, Physics blue; off, the app\'s orange throughout</string>
+    <string name="settings_wallpaper">Accent from your wallpaper</string>
+    <string name="settings_wallpaper_description">Buttons take your wallpaper\'s colour</string>
+    <string name="settings_reading">Reading</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_text_size_description">On top of the phone\'s own setting. Questions are pictures: pinch one to zoom</string>
+    <string name="text_small">Small</string>
+    <string name="text_default">Default</string>
+    <string name="text_large">Large</string>
+    <string name="text_larger">Larger</string>
+    <string name="settings_dark_pictures">Dark question pictures</string>
+    <string name="settings_dark_pictures_description">In the dark theme, questions white on black instead of black on white</string>
+    <string name="settings_practice">Practice</string>
+    <string name="settings_exam_clock">Show the clock in exams</string>
+    <string name="settings_exam_clock_description">Off, the hour still counts down, out of sight</string>
+    <string name="settings_greeting">Olaf when the app starts</string>
+    <string name="settings_greeting_description">His moment on the way in</string>
+    <string name="settings_memes">Memes</string>
+    <string name="settings_memes_on">Science memes in feeds</string>
+    <string name="settings_memes_description">Now and then between the questions, from science subreddits on Reddit (through meme-api.com). Needs the internet, the one thing in the app that does; nothing about you is sent. Posts marked NSFW are skipped, but they\'re not checked by us</string>
+    <string name="settings_meme_frequency">How often</string>
+    <string name="settings_meme_frequency_description">Roughly; never on a beat</string>
+    <string name="memes_rare">Rarely</string>
+    <string name="memes_sometimes">Sometimes</string>
+    <string name="memes_often">Often</string>
+    <string name="meme_label">Meme · a break from the questions</string>
+    <string name="settings_data">Your data</string>
+    <string name="settings_reset">Reset progress</string>
+    <string name="settings_reset_description">Every answer, sitting, mistake and minute studied. Likes and comments stay</string>
+    <string name="settings_reset_title">Reset progress?</string>
+    <string name="settings_reset_text">Every answer, best score, mistake to fix and minute studied will be gone, for good. Likes and comments stay.</string>
+    <string name="settings_reset_confirm">Reset</string>
+    <string name="settings_reset_done">Progress reset. A fresh start.</string>
+    <string name="settings_delete_saved">Delete likes and comments</string>
+    <string name="settings_delete_saved_description">Every heart and every note you left</string>
+    <string name="settings_delete_saved_title">Delete likes and comments?</string>
+    <string name="settings_delete_saved_text">Every liked question and every comment will be gone, for good.</string>
+    <string name="settings_delete_saved_confirm">Delete</string>
+    <string name="settings_delete_saved_done">Likes and comments deleted.</string>
+    <string name="settings_about">PaperZero %1$s · open source (GPL-3.0). Everything you do stays on this phone.</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
 </resources>

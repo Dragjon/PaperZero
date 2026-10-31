@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.EmojiEmotions
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Lightbulb
@@ -71,6 +72,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import dev.olaf.paperzero.LocalSettings
+import dev.olaf.paperzero.Meme
+import dev.olaf.paperzero.Memes
 import dev.olaf.paperzero.R
 import dev.olaf.paperzero.core.data.CommentEntity
 import dev.olaf.paperzero.core.data.Pack
@@ -87,6 +91,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
+import kotlin.random.Random
 
 /**
  * What a feed shows: a subject's questions without end (or only its [Of.topic]'s), or a list
@@ -136,6 +141,31 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             snapshotFlow { list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }.collect { last ->
                 if (feed.isNotEmpty() && last > feed.size - 4) feed += progresses.feed(source.subject, emptySet(), source.topic)
             }
+        }
+    }
+
+    // Memes between the posts, when they're turned on: about one in [MemeFrequency.every] posts,
+    // never on a beat. memeAt: after which post, which meme.
+    val settings = LocalSettings.current
+    val memes = remember { mutableStateListOf<Meme>() }
+    val memeAt = remember { mutableStateMapOf<Int, Int>() }
+    var nextMeme by remember { mutableIntStateOf(-1) }
+    var memesGone by remember { mutableStateOf(false) }
+    if (settings.memes) {
+        LaunchedEffect(feed.size, settings.memeFrequency) {
+            val every = settings.memeFrequency.every
+            fun gap() = Random.nextInt((every + 1) / 2, every * 3 / 2 + 1).coerceAtLeast(2)
+            if (nextMeme < 0) nextMeme = gap()
+            while (nextMeme < feed.size) {
+                memeAt[nextMeme] = memeAt.size
+                nextMeme += gap()
+            }
+        }
+        LaunchedEffect(memeAt.size, memes.size) {
+            // A few ahead of the feed; if the internet isn't there, the feed goes on without them.
+            if (memesGone || memes.size >= memeAt.size + 2) return@LaunchedEffect
+            val got = Memes.fetch((source as? FeedSource.Of)?.subject, memes.map { it.link }.toSet())
+            if (got.isEmpty()) memesGone = true else memes += got
         }
     }
 
@@ -192,6 +222,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                     val subject = pack.paper(question.paperId)?.subject
                     // A saved feed mixes the sciences: each post in its own colours.
                     SubjectTheme(if (source is FeedSource.Saved) subject else null, fill = false) {
+                    Column {
                     Post(
                         question = question,
                         source = pack.paper(question.paperId)?.let { progresses.title(it) } ?: "",
@@ -212,6 +243,8 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                             scope.launch { progresses.answer(sessionId, question, letter) }
                         },
                     )
+                    if (settings.memes) memeAt[i]?.let { memes.getOrNull(it) }?.let { MemePost(it) }
+                    }
                     }
                 }
             }
@@ -252,6 +285,7 @@ private fun Post(
     val colors = MaterialTheme.colorScheme
     val success = LocalPaperExtras.current.success
     val image by rememberAssetImage(question.image)
+    val picture = picture()
     Column(Modifier.fillMaxWidth()) {
         // Who posted it: the paper, as an account would be.
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -272,7 +306,7 @@ private fun Post(
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(picture.ground)
                 .clickable { onZoom(question.image) },
         ) {
             val shown = image
@@ -283,6 +317,7 @@ private fun Post(
                     shown,
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
+                    colorFilter = picture.filter,
                     modifier = Modifier.fillMaxWidth().aspectRatio(shown.width.toFloat() / shown.height).padding(6.dp),
                 )
             }
@@ -371,6 +406,33 @@ private fun Post(
     }
 }
 
+/** A meme between the questions, as a post: where it's from, the picture, its title. */
+@Composable
+private fun MemePost(meme: Meme) {
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = CircleShape, color = colors.tertiaryContainer, contentColor = colors.onTertiaryContainer, modifier = Modifier.size(36.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.EmojiEmotions, contentDescription = null, modifier = Modifier.size(20.dp)) }
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(meme.source, style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.meme_label), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+        Image(
+            meme.image,
+            contentDescription = meme.title,
+            contentScale = ContentScale.FillWidth,
+            modifier = Modifier.fillMaxWidth().aspectRatio(meme.image.width.toFloat() / meme.image.height),
+        )
+        if (meme.title.isNotBlank()) {
+            Text(meme.title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        }
+    }
+}
+
 /** A question's comments, newest at the foot, and a field to add one. They're for you alone. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -436,13 +498,14 @@ fun CommentsSheet(comments: List<CommentEntity>, onSend: (String) -> Unit, onDel
 @Composable
 fun Zoomed(path: String, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Box(Modifier.fillMaxSize().background(Color.White)) {
+        val picture = picture()
+        Box(Modifier.fillMaxSize().background(picture.ground)) {
             ZoomBox(Modifier.fillMaxSize()) {
                 val image by rememberAssetImage(path)
-                image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().align(Alignment.Center)) }
+                image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Fit, colorFilter = picture.filter, modifier = Modifier.fillMaxSize().align(Alignment.Center)) }
             }
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)) {
-                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close), tint = Color.Black)
+                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close), tint = picture.ink)
             }
         }
     }

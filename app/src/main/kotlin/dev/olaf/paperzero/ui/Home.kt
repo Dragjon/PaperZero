@@ -29,9 +29,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bookmarks
 import androidx.compose.material.icons.rounded.Replay
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SwipeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -95,6 +97,7 @@ fun HomeScreen(
     onSaved: (SavedTab) -> Unit,
     onOpenSaved: (SavedTab, Int) -> Unit,
     onStats: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val progress by progresses.progress.collectAsState(initial = null)
     val stats by progresses.stats.collectAsState(initial = null)
@@ -116,7 +119,10 @@ fun HomeScreen(
         ) {
             item {
                 Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp)) {
-                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displaySmall)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.displaySmall, modifier = Modifier.weight(1f))
+                        IconButton(onClick = onSettings) { Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.settings)) }
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(8.dp))

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
+import dev.olaf.paperzero.LocalSettings
 import dev.olaf.paperzero.core.data.Subject
 
 /**
@@ -75,7 +76,7 @@ private fun ColorScheme.with(p: SubjectPalette, dark: Boolean): ColorScheme {
  */
 @Composable
 fun SubjectTheme(subject: Subject?, fill: Boolean = true, content: @Composable () -> Unit) {
-    if (subject == null) return content()
+    if (subject == null || !LocalSettings.current.scienceColours) return content()
     val base = MaterialTheme.colorScheme
     val dark = base.background.luminance() < 0.5f
     val p = palette(subject)

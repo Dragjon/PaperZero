@@ -36,6 +36,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import dev.olaf.paperzero.ui.StartupScreen
+import dev.olaf.paperzero.ui.SettingsScreen
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import kotlinx.coroutines.delay
 
 /** [content] in the colours of the science a sitting's questions are all from, if they are. */
@@ -48,6 +53,19 @@ private fun SessionTheme(app: PaperZeroApplication, sessionId: Long, content: @C
     SubjectTheme(subject, content = content)
 }
 
+/** [content] as the settings have it: the theme, its ground, and the words' size. */
+@Composable
+private fun SettingsTheme(settings: Settings, content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    PaperTheme(themeMode = settings.theme, dynamicColor = settings.wallpaperColour, ground = settings.ground) {
+        CompositionLocalProvider(
+            LocalSettings provides settings,
+            LocalDensity provides Density(density.density, density.fontScale * settings.textSize.scale),
+            content = content,
+        )
+    }
+}
+
 /** How long Olaf greets on a fresh start. */
 private const val STARTUP_MS = 1600L
 
@@ -57,16 +75,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val app = application as PaperZeroApplication
         setContent {
-            PaperTheme {
-                // A fresh start greets with Olaf for a moment; coming back to the app doesn't.
-                var greeting by rememberSaveable { mutableStateOf(savedInstanceState == null) }
+            val settings by app.settings.settings.collectAsState()
+            SettingsTheme(settings) {
+                // A fresh start greets with Olaf for a moment (unless he's turned off); coming back
+                // to the app doesn't.
+                var greeting by rememberSaveable { mutableStateOf(savedInstanceState == null && settings.greeting) }
                 LaunchedEffect(Unit) {
                     delay(STARTUP_MS)
                     greeting = false
                 }
                 if (greeting) {
                     StartupScreen()
-                    return@PaperTheme
+                    return@SettingsTheme
                 }
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val nav = rememberNavController()
@@ -82,7 +102,11 @@ class MainActivity : ComponentActivity() {
                                 onSaved = { nav.navigate("saved/${it.name}") },
                                 onOpenSaved = { tab, i -> nav.navigate("savedfeed/${tab.name}/$i") },
                                 onStats = { nav.navigate("stats") },
+                                onSettings = { nav.navigate("settings") },
                             )
+                        }
+                        composable("settings") {
+                            SettingsScreen(settings, app.settings::update, app.progresses, onBack = { nav.popBackStack() })
                         }
                         composable("stats") {
                             StatsScreen(app.progresses, onBack = { nav.popBackStack() }, onTopic = { s, t -> nav.navigate("feed/${s.name}?topic=$t") })

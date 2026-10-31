@@ -21,13 +21,18 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.olaf.paperzero.LocalSettings
 import dev.olaf.paperzero.R
 import dev.olaf.paperzero.core.data.Subject
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +52,22 @@ fun rememberAssetImage(path: String?, sample: Int = 1): State<ImageBitmap?> {
             }
         }
     }
+}
+
+/**
+ * How a question's picture is shown: as printed, black on white; or, with dark pictures on in the
+ * dark theme, white on black, so a dark screen doesn't flash white with every question.
+ */
+class Picture(val ground: Color, val ink: Color, val filter: ColorFilter?)
+
+private val Inverted = ColorFilter.colorMatrix(
+    ColorMatrix(floatArrayOf(-1f, 0f, 0f, 0f, 255f, 0f, -1f, 0f, 0f, 255f, 0f, 0f, -1f, 0f, 255f, 0f, 0f, 0f, 1f, 0f)),
+)
+
+@Composable
+fun picture(): Picture {
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    return if (dark && LocalSettings.current.darkPictures) Picture(Color.Black, Color.White, Inverted) else Picture(Color.White, Color.Black, null)
 }
 
 val Subject.icon: ImageVector

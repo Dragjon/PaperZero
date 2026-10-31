@@ -86,9 +86,10 @@ fun SavedScreen(pack: Pack, progresses: Progresses, start: SavedTab, onBack: () 
 @Composable
 fun Tile(path: String, modifier: Modifier = Modifier) {
     val image by rememberAssetImage(path, sample = 2)
-    Box(modifier.fillMaxWidth().aspectRatio(1f).background(Color.White)) {
+    val picture = picture()
+    Box(modifier.fillMaxWidth().aspectRatio(1f).background(picture.ground)) {
         image?.let {
-            Image(it, contentDescription = null, contentScale = ContentScale.Crop, alignment = Alignment.TopStart, modifier = Modifier.fillMaxSize().padding(4.dp))
+            Image(it, contentDescription = null, contentScale = ContentScale.Crop, alignment = Alignment.TopStart, colorFilter = picture.filter, modifier = Modifier.fillMaxSize().padding(4.dp))
         }
     }
 }

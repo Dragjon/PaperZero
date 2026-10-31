@@ -158,14 +158,57 @@ fun isDarkTheme(mode: ThemeMode): Boolean = when (mode) {
     ThemeMode.System -> isSystemInDarkTheme()
 }
 
+/** What the screens stand on: the warm paper, a plain gray, or (dark only) black for OLED. */
+enum class Ground { Warm, Neutral, Black }
+
+/** [this] scheme on [ground] instead of the warm paper; cards keep their steps above it. */
+private fun ColorScheme.on(ground: Ground, dark: Boolean): ColorScheme = when {
+    ground == Ground.Warm -> this
+    dark -> {
+        val black = ground == Ground.Black
+        copy(
+            background = Color(if (black) 0xFF000000 else 0xFF121212),
+            surface = Color(if (black) 0xFF000000 else 0xFF121212),
+            surfaceDim = Color(if (black) 0xFF000000 else 0xFF121212),
+            surfaceContainerLowest = Color(if (black) 0xFF000000 else 0xFF0D0D0D),
+            surfaceContainerLow = Color(if (black) 0xFF0E0E0E else 0xFF1A1A1A),
+            surfaceContainer = Color(if (black) 0xFF151515 else 0xFF1F1F1F),
+            surfaceContainerHigh = Color(if (black) 0xFF1F1F1F else 0xFF292929),
+            surfaceContainerHighest = Color(if (black) 0xFF2A2A2A else 0xFF333333),
+            surfaceVariant = Color(if (black) 0xFF1F1F1F else 0xFF292929),
+            surfaceBright = Color(0xFF383838),
+            outlineVariant = Color(0xFF383838),
+            onBackground = Color(0xFFF2F2F2),
+            onSurface = Color(0xFFF2F2F2),
+            onSurfaceVariant = Color(0xFFB0B0B0),
+        )
+    }
+    else -> copy(
+        background = Color(0xFFF7F7F7),
+        surface = Color(0xFFF7F7F7),
+        surfaceDim = Color(0xFFEBEBEB),
+        surfaceContainerLowest = Color(0xFFFFFFFF),
+        surfaceContainerLow = Color(0xFFFCFCFC),
+        surfaceContainer = Color(0xFFFFFFFF),
+        surfaceContainerHigh = Color(0xFFF0F0F0),
+        surfaceContainerHighest = Color(0xFFE8E8E8),
+        surfaceVariant = Color(0xFFF0F0F0),
+        outlineVariant = Color(0xFFE3E3E3),
+        onBackground = Color(0xFF1F1F1F),
+        onSurface = Color(0xFF1F1F1F),
+        onSurfaceVariant = Color(0xFF5F5F5F),
+    )
+}
+
 @Composable
 fun PaperTheme(
     themeMode: ThemeMode = ThemeMode.System,
     dynamicColor: Boolean = false,
+    ground: Ground = Ground.Warm,
     content: @Composable () -> Unit,
 ) {
     val dark = isDarkTheme(themeMode)
-    val base = if (dark) NightScheme else DayScheme
+    val base = (if (dark) NightScheme else DayScheme).on(ground, dark)
     val scheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         withWallpaperAction(base, dark)
     } else {

@@ -133,6 +133,12 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
 
     suspend fun deleteComment(id: Long) = dao.deleteComment(id)
 
+    /** Forgets every answer, sitting and second studied; likes and comments stay. */
+    suspend fun resetProgress() = dao.resetProgress()
+
+    /** Forgets every like and comment. */
+    suspend fun deleteSaved() = dao.deleteSaved()
+
     /** Throws away a sitting that was started but not wanted. */
     suspend fun discard(sessionId: Long) {
         dao.deleteAnswers(sessionId)

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- No INTERNET permission: everything is on the phone. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Only for science memes in the feeds, which are off unless turned on in the settings:
+         everything else is on the phone. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".PaperZeroApplication"
