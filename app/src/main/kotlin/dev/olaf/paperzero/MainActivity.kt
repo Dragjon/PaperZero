@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,6 +69,9 @@ private fun SettingsTheme(settings: Settings, content: @Composable () -> Unit) {
     }
 }
 
+/** How long a move between screens takes. */
+private const val NAV_MS = 150
+
 /** How long Olaf greets on a fresh start. */
 private const val STARTUP_MS = 1600L
 
@@ -91,7 +97,15 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val nav = rememberNavController()
                     val onTopic: (Subject, Int) -> Unit = { s, t -> nav.navigate("feed/${s.name}?topic=$t") }
-                    NavHost(nav, startDestination = "home") {
+                    // Quick between screens: a short fade, no waiting on the way in.
+                    NavHost(
+                        nav,
+                        startDestination = "home",
+                        enterTransition = { fadeIn(tween(NAV_MS)) },
+                        exitTransition = { fadeOut(tween(NAV_MS)) },
+                        popEnterTransition = { fadeIn(tween(NAV_MS)) },
+                        popExitTransition = { fadeOut(tween(NAV_MS)) },
+                    ) {
                         composable("home") {
                             HomeScreen(
                                 app.pack,

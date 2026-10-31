@@ -111,6 +111,6 @@ private fun DrawScope.spiral(from: Offset, color: Color, swarm: List<Bubble>, p:
 private const val RING_BUBBLES = 9
 private const val RING_TURN_MS = 45_000
 private const val SPIRAL_BUBBLES = 46
-private const val SPIRAL_MS = 650
+private const val SPIRAL_MS = 280
 /** How far round the bubbles spiral on their way out (radians). */
 private const val SPIN = 2.4f

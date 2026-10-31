@@ -127,7 +127,7 @@ fun HomeScreen(
     var root by remember { mutableStateOf(Offset.Zero) }
     val tilt = remember { Animatable(0f) }
     LaunchedEffect(entering) {
-        if (entering == null) tilt.snapTo(0f) else tilt.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
+        if (entering == null) tilt.snapTo(0f) else tilt.animateTo(1f, tween(280, easing = FastOutSlowInEasing))
     }
     Box(Modifier.fillMaxSize().onGloballyPositioned { root = it.boundsInRoot().topLeft }) {
     Box(
