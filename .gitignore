@@ -11,3 +11,7 @@ local.properties
 *.iml
 /.kotlin/
 /dist/
+
+# The website: its dependencies and build (which holds the private pack).
+web/node_modules/
+web/dist/

@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/data/db.ts","./src/data/memes.ts","./src/data/pack.ts","./src/data/progress.ts","./src/data/settings.ts","./src/ui/feed.tsx","./src/ui/home.tsx","./src/ui/lists.tsx","./src/ui/papers.tsx","./src/ui/quiz.tsx","./src/ui/settingsscreen.tsx","./src/ui/bubbles.tsx","./src/ui/common.tsx","./src/ui/olaf.tsx"],"version":"5.6.3"}

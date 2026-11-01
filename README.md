@@ -35,6 +35,24 @@ science at large) through [meme-api.com](https://github.com/D3vd/Meme_Api), and 
 a page at a time; NSFW and spoiler posts are skipped. This is why
 the app asks for the internet permission; nothing else uses it.
 
+## The website
+
+`web/` is PaperZero for the browser, for iPhone and computers: the same feed, papers, timed sets,
+mistakes, stats, settings and memes, with progress kept in the browser. It's a static site
+(Vite + React); once opened it works offline, and on iPhone, Share then *Add to Home Screen* keeps
+it like an app. Search engines are asked to keep out (`robots.txt`, `noindex`).
+
+```
+cd web
+npm install
+npm run dev        # http://localhost:5173, the pack served from ../content/pack
+npm run build      # web/dist: the site, with the pack copied in
+npx wrangler pages deploy dist --project-name paperzero
+```
+
+The pack is copied into the build, never into git; the built site does hold it, so share its
+address with care.
+
 ## The questions
 
 The questions themselves are not in this repository: the papers belong to SEAB/Cambridge, the

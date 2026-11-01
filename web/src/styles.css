@@ -1,0 +1,193 @@
+/* PaperZero for the browser: the app's look. Soft Card, Night and Day, in Figtree. */
+
+@font-face { font-family: Figtree; src: url(/fonts/figtree_regular.ttf) format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Figtree; src: url(/fonts/figtree_medium.ttf) format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: Figtree; src: url(/fonts/figtree_semibold.ttf) format('truetype'); font-weight: 600; font-display: swap; }
+
+/* Night: warm charcoal ground, cards a step up, one orange that only marks what can be pressed. */
+:root, [data-theme='dark'] {
+  --primary: #ff6a3d; --on-primary: #1e0e07;
+  --primary-container: #3b231a; --on-primary-container: #ffdbce;
+  --background: #161412; --on-background: #f4eee6;
+  --surface-low: #1c1a17; --surface: #221f1c; --surface-high: #2c2824; --surface-highest: #36312c;
+  --on-surface: #f4eee6; --on-surface-variant: #b3a99d;
+  --outline: #7d7369; --outline-variant: #3a352f;
+  --error: #ff9c9c; --on-error: #3a0b0b;
+  --success: #9ad3a6;
+  --dock: #302b27; --dock-edge: rgba(244, 238, 230, 0.14); --dock-shadow: none;
+  --tertiary-container: #2e3b31; --on-tertiary-container: #cdeccf;
+  color-scheme: dark;
+}
+[data-theme='dark'][data-ground='Neutral'] {
+  --background: #121212; --surface-low: #1a1a1a; --surface: #1f1f1f; --surface-high: #292929; --surface-highest: #333;
+  --on-background: #f2f2f2; --on-surface: #f2f2f2; --on-surface-variant: #b0b0b0; --outline-variant: #383838;
+}
+[data-theme='dark'][data-ground='Black'] {
+  --background: #000; --surface-low: #0e0e0e; --surface: #151515; --surface-high: #1f1f1f; --surface-highest: #2a2a2a;
+  --on-background: #f2f2f2; --on-surface: #f2f2f2; --on-surface-variant: #b0b0b0; --outline-variant: #383838;
+}
+/* Day: near-white warm paper and a lighter coral. */
+[data-theme='light'] {
+  --primary: #ff8052; --on-primary: #1e0e07;
+  --primary-container: #ffebe1; --on-primary-container: #3b1607;
+  --background: #fffaf5; --on-background: #2b241f;
+  --surface-low: #fffdfa; --surface: #ffffff; --surface-high: #fbf2e9; --surface-highest: #f5e9dc;
+  --on-surface: #2b241f; --on-surface-variant: #6f625a;
+  --outline: #9a8c80; --outline-variant: #eee3d7;
+  --error: #b3261e; --on-error: #fff;
+  --success: #2e7d4f;
+  --dock: #ffffff; --dock-edge: #e6d9cb; --dock-shadow: 0 6px 18px rgba(43, 36, 31, 0.12);
+  --tertiary-container: #dff3e3; --on-tertiary-container: #0e2615;
+  color-scheme: light;
+}
+[data-theme='light'][data-ground='Neutral'], [data-theme='light'][data-ground='Black'] {
+  --background: #f7f7f7; --surface-low: #fcfcfc; --surface: #fff; --surface-high: #f0f0f0; --surface-highest: #e8e8e8;
+  --on-background: #1f1f1f; --on-surface: #1f1f1f; --on-surface-variant: #5f5f5f; --outline-variant: #e3e3e3;
+}
+
+/* Each science's colours: an accent, the tint of its cards and ground. Dark ink on every accent. */
+[data-theme='dark'] .s-Biology { --primary: #6fd49b; --on-primary: #06210f; --primary-container: #183a27; --on-primary-container: #cdf3dc; --tint: #6fd49b; }
+[data-theme='dark'] .s-Chemistry { --primary: #b9a3ff; --on-primary: #1a0f3d; --primary-container: #2d2450; --on-primary-container: #e6deff; --tint: #b9a3ff; }
+[data-theme='dark'] .s-Physics { --primary: #7dbbff; --on-primary: #06203a; --primary-container: #1a3150; --on-primary-container: #d6e8ff; --tint: #7dbbff; }
+[data-theme='light'] .s-Biology { --primary: #45b87a; --on-primary: #06210f; --primary-container: #ddf4e6; --on-primary-container: #0d3320; --tint: #45b87a; }
+[data-theme='light'] .s-Chemistry { --primary: #a084f5; --on-primary: #1a0f3d; --primary-container: #ede7ff; --on-primary-container: #2a1a5e; --tint: #8e6cf2; }
+[data-theme='light'] .s-Physics { --primary: #4da2f5; --on-primary: #06203a; --primary-container: #ddedff; --on-primary-container: #0b2f55; --tint: #3d8fe6; }
+/* The plain ground and card colours, as the theme has them: what a science's colours tint. */
+html { --ground: var(--background); --card: var(--surface); }
+/* A whole screen in a science's colours: its ground and cards take a breath of it. */
+.s-fill { --background: color-mix(in srgb, var(--tint) 5%, var(--ground)); background: var(--background); }
+.s-fill .card, .s-fill .chip:not(.on), .s-fill .sheet { background: color-mix(in srgb, var(--tint) 8%, var(--card)); }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { font-size: calc(16px * var(--text-scale, 1)); }
+html, body, #root { margin: 0; height: 100%; }
+body {
+  font-family: Figtree, system-ui, -apple-system, sans-serif;
+  background: var(--background); color: var(--on-background);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
+input, textarea { font: inherit; color: inherit; }
+img { display: block; }
+
+.screen { min-height: 100dvh; display: flex; flex-direction: column; background: var(--background); }
+.content { width: 100%; max-width: 720px; margin: 0 auto; padding: 0 16px; }
+.pad-top { padding-top: max(env(safe-area-inset-top), 12px); }
+.pad-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
+
+.display { font-size: 2.125rem; line-height: 2.5rem; font-weight: 600; }
+.headline { font-size: 1.5rem; line-height: 1.875rem; font-weight: 600; }
+.title-l { font-size: 1.25rem; line-height: 1.625rem; font-weight: 600; }
+.title-m { font-size: 1rem; line-height: 1.375rem; font-weight: 600; }
+.title-s { font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; }
+.body-l { font-size: 1rem; line-height: 1.5rem; }
+.body-m { font-size: 0.875rem; line-height: 1.25rem; }
+.body-s { font-size: 0.75rem; line-height: 1rem; }
+.label-l { font-size: 0.9375rem; line-height: 1.25rem; font-weight: 600; }
+.label-m { font-size: 0.75rem; line-height: 1rem; font-weight: 500; }
+.muted { color: var(--on-surface-variant); }
+
+.topbar { display: flex; align-items: center; gap: 4px; padding: max(env(safe-area-inset-top), 8px) 12px 8px 4px; }
+.topbar h1 { margin: 0 0 0 4px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.icon-btn:hover { background: color-mix(in srgb, var(--on-surface) 8%, transparent); }
+
+.card { background: var(--surface); border-radius: 28px; }
+.press { transition: transform 0.18s cubic-bezier(.2,.8,.3,1); }
+.press:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { .press:active { transform: none; } }
+
+.chip { padding: 10px 18px; border-radius: 999px; background: var(--surface); color: var(--on-surface-variant); white-space: nowrap; }
+.chip.on { background: var(--primary); color: var(--on-primary); }
+.chip.on.subtle { background: var(--primary-container); color: var(--on-primary-container); }
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 16px; }
+.chips::-webkit-scrollbar { display: none; }
+
+.pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 56px; padding: 0 24px; border-radius: 28px;
+  background: var(--primary); color: var(--on-primary); font-weight: 600; font-size: 1.0625rem;
+}
+.pill.small { min-height: 44px; padding: 0 18px; font-size: 0.9375rem; }
+
+.dock-wrap { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 16px calc(env(safe-area-inset-bottom) + 16px); pointer-events: none; }
+.dock-fade { position: fixed; left: 0; right: 0; bottom: 0; height: 140px; background: linear-gradient(transparent, var(--background)); pointer-events: none; }
+.dock {
+  pointer-events: auto; width: 100%; max-width: 480px; display: flex; align-items: center; justify-content: space-between;
+  padding: 8px; border-radius: 28px; background: var(--dock); border: 1px solid var(--dock-edge); box-shadow: var(--dock-shadow);
+}
+.dock-action { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; font-size: 0.8125rem; font-weight: 500; min-width: 72px; }
+.dock .pill { min-width: 140px; }
+
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: flex-end; justify-content: center; animation: fade .15s; }
+.sheet {
+  width: 100%; max-width: 640px; max-height: 85dvh; overflow-y: auto; background: var(--surface); color: var(--on-surface);
+  border-radius: 28px 28px 0 0; padding: 12px 16px calc(env(safe-area-inset-bottom) + 24px); animation: rise .2s cubic-bezier(.2,.8,.3,1);
+}
+.sheet .grab { width: 32px; height: 4px; border-radius: 2px; background: var(--outline); opacity: .5; margin: 0 auto 16px; }
+.sheet-action { width: 100%; display: flex; align-items: center; gap: 16px; text-align: left; padding: 16px 20px; border-radius: 24px; background: var(--surface-high); margin-bottom: 8px; }
+.sheet-action .ic { width: 44px; height: 44px; border-radius: 16px; display: grid; place-items: center; background: var(--primary-container); color: var(--on-primary-container); flex: none; }
+@keyframes rise { from { transform: translateY(40px); opacity: 0 } }
+@keyframes fade { from { opacity: 0 } }
+
+.dialog-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60; display: grid; place-items: center; padding: 24px; animation: fade .15s; }
+.dialog { width: 100%; max-width: 380px; background: var(--surface); color: var(--on-surface); border-radius: 28px; padding: 24px; }
+.dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.text-btn { padding: 10px 14px; border-radius: 20px; font-weight: 600; color: var(--primary); }
+.text-btn:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+
+.bar { height: 6px; border-radius: 3px; background: var(--surface-high); position: relative; overflow: hidden; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+
+.switch { width: 52px; height: 32px; border-radius: 16px; background: var(--surface-highest); border: 2px solid var(--outline); position: relative; flex: none; transition: background .15s; }
+.switch::after { content: ''; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--outline); transition: all .15s; }
+.switch.on { background: var(--primary); border-color: var(--primary); }
+.switch.on::after { left: 24px; top: 2px; width: 24px; height: 24px; background: var(--on-primary); }
+
+/* The feed: one question to a screen, on black, swiped up for the next. */
+.feed { position: fixed; inset: 0; background: #000; color: #fff; z-index: 10; }
+.feed-scroller { position: absolute; inset: 0; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; overscroll-behavior: contain; }
+.feed-scroller::-webkit-scrollbar { display: none; }
+.feed-page { height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always; display: flex; justify-content: center; }
+.feed-inner { width: 100%; max-width: 640px; height: 100%; display: flex; flex-direction: column; padding: calc(max(env(safe-area-inset-top), 8px) + 56px) 0 max(env(safe-area-inset-bottom), 8px); }
+.feed-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 4px; padding: max(env(safe-area-inset-top), 4px) 8px 16px 4px; background: linear-gradient(rgba(0,0,0,.7), transparent); z-index: 2; }
+.feed-picture { flex: 1; min-height: 0; display: grid; place-items: center; position: relative; padding: 0 8px; }
+.feed-picture img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 16px; padding: 8px; background: #fff; }
+.glass { background: rgba(255,255,255,0.14); color: #fff; }
+.ink-soft { color: rgba(255,255,255,0.72); }
+.rail { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.rail button { display: flex; flex-direction: column; align-items: center; min-width: 64px; padding: 6px 0; font-size: 0.75rem; font-weight: 500; }
+.letters { display: flex; gap: 8px; padding: 12px; }
+.letter { flex: 1; height: 48px; border-radius: 16px; font-size: 1rem; font-weight: 600; position: relative; }
+.tag { padding: 6px 12px; border-radius: 999px; font-size: 0.9375rem; font-weight: 600; }
+
+.heart-pop { position: absolute; pointer-events: none; animation: heart .7s ease-out forwards; }
+@keyframes heart { 0% { transform: scale(.5); opacity: 1 } 25% { transform: scale(1.1); opacity: 1 } 60% { opacity: 1 } 100% { transform: scale(1.1); opacity: 0 } }
+
+/* A splash round an answer the moment it's right. */
+.splash { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.splash .ring { position: absolute; inset: 0; border-radius: 999px; border: 3px solid var(--success); animation: ring .65s cubic-bezier(.2,.8,.3,1) forwards; }
+.splash .drop { position: absolute; left: 50%; top: 50%; border-radius: 50%; background: var(--success); animation: drop .65s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes ring { from { inset: 0; opacity: .9 } to { inset: -22px; opacity: 0 } }
+@keyframes drop { from { transform: translate(-50%, -50%) translate(0, 0); opacity: 1 } 60% { opacity: 1 } to { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(.5); opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { .splash, .heart-pop { display: none } }
+
+/* Questions as printed, or (dark pictures, in the dark theme) white on black. */
+[data-theme='dark'][data-dark-pictures='true'] .q-img { filter: invert(1); background: #000 !important; }
+
+@keyframes spin { to { transform: rotate(360deg) } }
+.spinner { width: 40px; height: 40px; border-radius: 50%; border: 4px solid var(--surface-high); border-top-color: var(--primary); animation: spin .8s linear infinite; }
+
+/* A story's ring turns slowly, unless motion is turned down. */
+.ring-turn { animation: spin 45s linear infinite; transform-origin: 0 0; }
+@media (prefers-reduced-motion: reduce) { .ring-turn { animation: none } }
+/* Home tips back as the way into a feed opens. */
+.tipping { transition: transform .28s cubic-bezier(.2,.8,.3,1); transform: perspective(900px) rotateX(14deg) scale(.9); }
+
+/* The timed set's stack, shuffling: each paper lifted out to a side and slipped back under. */
+.shuffle { animation: shuffle .35s ease-in-out 2; }
+.shuffle-1, .shuffle-3 { animation-name: shuffle-r; }
+.shuffle-1 { animation-delay: .09s } .shuffle-2 { animation-delay: .18s } .shuffle-3 { animation-delay: .27s }
+@keyframes shuffle { 50% { transform: translateX(-18px) rotate(-22deg) } }
+@keyframes shuffle-r { 50% { transform: translateX(18px) rotate(22deg) } }
