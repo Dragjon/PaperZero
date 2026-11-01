@@ -1,5 +1,10 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.rounded.OutlinedFlag
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -149,6 +154,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     val comments by progresses.comments.collectAsState(initial = emptyMap())
     var zoomed by remember { mutableStateOf<String?>(null) }
     var commenting by remember { mutableStateOf<Question?>(null) }
+    var reporting by remember { mutableStateOf<Pair<Question, String>?>(null) }
     var tried by remember { mutableIntStateOf(0) }
     var right by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -245,9 +251,13 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
     }
+    // How long this sitting has been scrolling, shown at the top: every second the feed is on
+    // screen, idle or not, so it's honest about the time gone.
+    var scrolled by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(running) {
         while (running) {
             delay(1000)
+            scrolled++
             if (System.currentTimeMillis() - touched > IDLE_MS) continue
             (pages.getOrNull(pager.currentPage) as? Page.Ask)?.let { pack.subject(it.question) }?.let { progresses.study(it, 1000) }
         }
@@ -286,6 +296,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                                         onLike = { like -> scope.launch { progresses.setLiked(question.key, like) } },
                                         onComments = { commenting = question },
                                         onShare = { scope.launch { shareQuestion(context, question, from) } },
+                                        onReport = { reporting = question to from },
                                         onTopic = { topic -> subject?.let { onTopic(it, topic) } },
                                         onChoose = { letter ->
                                             chosen[page.index] = letter
@@ -331,6 +342,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             ) {
                 IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close)) }
                 Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                ScrollTimer(scrolled)
                 if (tried > 0) {
                     Text(stringResource(R.string.scroll_score, right, tried), style = MaterialTheme.typography.titleMedium, color = InkSoft, modifier = Modifier.padding(end = 12.dp))
                 }
@@ -346,6 +358,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             onDismiss = { commenting = null },
         )
     }
+    reporting?.let { (q, from) -> ReportSheet(q, from) { reporting = null } }
     zoomed?.let { path -> Zoomed(path) { zoomed = null } }
 }
 
@@ -379,6 +392,8 @@ private fun QuestionPage(
     onLike: (Boolean) -> Unit,
     onComments: () -> Unit,
     onShare: () -> Unit,
+    /** Something's wrong with it: the answer, the picture, the topic. */
+    onReport: () -> Unit,
     onTopic: (Int) -> Unit,
     onChoose: (Char) -> Unit,
     /** Takes back the answer given: a misclick, not to count. */
@@ -500,6 +515,7 @@ private fun QuestionPage(
                     RailAction(Icons.Rounded.Lightbulb, stringResource(R.string.working), stringResource(R.string.working_short)) { onZoom(explain) }
                 }
                 RailAction(Icons.Rounded.Share, stringResource(R.string.share), stringResource(R.string.share), onClick = onShare)
+                RailAction(Icons.Rounded.OutlinedFlag, stringResource(R.string.report_title), stringResource(R.string.report), onClick = onReport)
             }
         }
         // Try it: A to D, marked at once.
@@ -640,6 +656,28 @@ fun Zoomed(path: String, onDismiss: () -> Unit) {
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)) {
                 Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close), tint = picture.ink)
             }
+        }
+    }
+}
+
+/** How long this sitting has been scrolling: a small glass pill, "4:05", or "1:04:05" past the hour. */
+@Composable
+private fun ScrollTimer(seconds: Int) {
+    val h = seconds / 3600
+    val m = seconds / 60 % 60
+    val sec = seconds % 60
+    val text = if (h > 0) "%d:%02d:%02d".format(h, m, sec) else "%d:%02d".format(m, sec)
+    val spoken = stringResource(R.string.scroll_timer, duration(seconds * 1000L))
+    Surface(
+        shape = CircleShape,
+        color = Glass,
+        contentColor = Ink,
+        modifier = Modifier.padding(end = 8.dp).clearAndSetSemantics { contentDescription = spoken },
+    ) {
+        Row(Modifier.padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.Timer, contentDescription = null, tint = InkSoft, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(text, style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"))
         }
     }
 }

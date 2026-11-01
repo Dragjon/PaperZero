@@ -1,5 +1,6 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.material.icons.rounded.OutlinedFlag
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -114,6 +115,7 @@ fun QuizScreen(
     var finishing by remember { mutableStateOf(false) }
     var grid by remember { mutableStateOf(false) }
     var zoomed by remember { mutableStateOf<String?>(null) }
+    var reporting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(sessionId) {
@@ -195,6 +197,7 @@ fun QuizScreen(
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
+            IconButton(onClick = { reporting = true }) { Icon(Icons.Rounded.OutlinedFlag, contentDescription = stringResource(R.string.report_title)) }
             IconButton(onClick = { grid = true }) { Icon(Icons.Rounded.Apps, contentDescription = stringResource(R.string.all_questions)) }
         }
 
@@ -300,6 +303,7 @@ fun QuizScreen(
             dismissButton = { TextButton(onClick = { leaving = false }) { Text(stringResource(R.string.keep_going), color = MaterialTheme.colorScheme.onSurfaceVariant) } },
         )
     }
+    if (reporting) ReportSheet(question, pack.paper(question.paperId)?.let { progresses.title(it) } ?: s.title) { reporting = false }
     zoomed?.let { path ->
         Dialog(onDismissRequest = { zoomed = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             val picture = picture()
