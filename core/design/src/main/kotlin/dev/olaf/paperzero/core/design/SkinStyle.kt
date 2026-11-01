@@ -293,16 +293,58 @@ fun SkinHeading(title: String, modifier: Modifier = Modifier, end: @Composable (
 }
 
 /**
+ * One bit of what a like bursts into in [skin], at [c], about [r] across, turned [turn] degrees:
+ * a snowflake, chalk dust, a spark of sun, a star, a bubble, a petal, a bat.
+ */
+fun DrawScope.likeBit(skin: Skin, c: Offset, r: Float, turn: Float, color: Color) {
+    val w = (r * 0.22f).coerceAtLeast(1.dp.toPx())
+    rotate(turn, c) {
+        when (skin) {
+            Skin.Classic -> for (k in 0 until 3) {
+                val a = PI / 3 * k
+                val d = Offset((r * cos(a)).toFloat(), (r * sin(a)).toFloat())
+                drawLine(color, c - d, c + d, w, StrokeCap.Round)
+            }
+            Skin.Chalkboard -> {
+                drawCircle(color.copy(alpha = color.alpha * 0.8f), r * 0.45f, c)
+                drawCircle(color.copy(alpha = color.alpha * 0.5f), r * 0.25f, c + Offset(r * 0.7f, -r * 0.3f))
+            }
+            Skin.Summer -> {
+                drawLine(color, c - Offset(r, 0f), c + Offset(r, 0f), w, StrokeCap.Round)
+                drawLine(color, c - Offset(0f, r), c + Offset(0f, r), w, StrokeCap.Round)
+                drawCircle(color, r * 0.3f, c)
+            }
+            Skin.Aurora -> {
+                val p = Path().apply {
+                    moveTo(c.x, c.y - r)
+                    quadraticTo(c.x, c.y, c.x + r, c.y)
+                    quadraticTo(c.x, c.y, c.x, c.y + r)
+                    quadraticTo(c.x, c.y, c.x - r, c.y)
+                    quadraticTo(c.x, c.y, c.x, c.y - r)
+                    close()
+                }
+                drawPath(p, color)
+            }
+            Skin.Lab -> drawCircle(color, r * 0.7f, c, style = Stroke(w))
+            Skin.Sakura -> drawOval(color, topLeft = c - Offset(r, r * 0.55f), size = Size(2 * r, 1.1f * r))
+            Skin.Halloween -> bat(c, r * 0.4f, color)
+        }
+    }
+}
+
+/**
  * What's drawn on the ground behind every screen in the skin showing: chalk dust on the board, the
  * sun and the sea, the aurora's curtains, graph paper, blossom, a Halloween night. Behind
  * everything, and faint, so nothing on top has to compete with it.
  */
 @Composable
-fun SkinBackdrop(modifier: Modifier = Modifier) {
+fun SkinBackdrop(modifier: Modifier = Modifier, night: Boolean = false) {
     val skin = LocalSkin.current
     if (skin == Skin.Classic) return
     val colors = MaterialTheme.colorScheme
-    val dark = isDark()
+    // At [night] (a feed, dark in any theme), drawn as on the dark side whatever the theme.
+    val dark = night || isDark()
+    val ink = if (night) Color.White else colors.onBackground
     val scatter = remember(skin) { Random(skin.ordinal * 31 + 7).let { r -> List(40) { Offset(r.nextFloat(), r.nextFloat()) to r.nextFloat() } } }
     Canvas(modifier) {
         val w = size.width
@@ -313,7 +355,7 @@ fun SkinBackdrop(modifier: Modifier = Modifier) {
                 // Old chalk dust where things were rubbed out, and the eraser's long sweeps.
                 scatter.take(7).forEach { (p, s) ->
                     drawCircle(
-                        Brush.radialGradient(listOf(colors.onBackground.copy(alpha = if (dark) 0.05f else 0.035f), Color.Transparent), center = Offset(p.x * w, p.y * h), radius = (90 + 140 * s).dp.toPx()),
+                        Brush.radialGradient(listOf(ink.copy(alpha = if (dark) 0.05f else 0.035f), Color.Transparent), center = Offset(p.x * w, p.y * h), radius = (90 + 140 * s).dp.toPx()),
                         radius = (90 + 140 * s).dp.toPx(),
                         center = Offset(p.x * w, p.y * h),
                     )
@@ -324,7 +366,7 @@ fun SkinBackdrop(modifier: Modifier = Modifier) {
                         moveTo(-20f, y)
                         quadraticTo(w * 0.5f, y - (40 + 60 * s).dp.toPx(), w + 20f, y + 20.dp.toPx())
                     }
-                    drawPath(path, colors.onBackground.copy(alpha = if (dark) 0.035f else 0.025f), style = Stroke((26 + 20 * s).dp.toPx(), cap = StrokeCap.Round))
+                    drawPath(path, ink.copy(alpha = if (dark) 0.035f else 0.025f), style = Stroke((26 + 20 * s).dp.toPx(), cap = StrokeCap.Round))
                 }
             }
             Skin.Summer -> {
@@ -395,9 +437,9 @@ fun SkinBackdrop(modifier: Modifier = Modifier) {
                 val moon = Offset(w + 4.dp.toPx(), -4.dp.toPx())
                 drawCircle(Brush.radialGradient(listOf(HalloweenMoon.copy(alpha = if (dark) 0.22f else 0.3f), Color.Transparent), center = moon, radius = 140.dp.toPx()), 140.dp.toPx(), moon)
                 drawCircle(HalloweenMoon.copy(alpha = if (dark) 0.3f else 0.45f), 30.dp.toPx(), moon)
-                cobweb(Offset(0f, 0f), 120.dp.toPx(), mirrored = false, colors.onBackground.copy(alpha = if (dark) 0.14f else 0.12f))
+                cobweb(Offset(0f, 0f), 120.dp.toPx(), mirrored = false, ink.copy(alpha = if (dark) 0.14f else 0.12f))
                 scatter.take(5).forEach { (p, s) ->
-                    bat(Offset(w * (0.15f + 0.7f * p.x), h * (0.06f + 0.3f * p.y)), (5 + 5 * s).dp.toPx(), colors.onBackground.copy(alpha = if (dark) 0.22f else 0.18f))
+                    bat(Offset(w * (0.15f + 0.7f * p.x), h * (0.06f + 0.3f * p.y)), (5 + 5 * s).dp.toPx(), ink.copy(alpha = if (dark) 0.22f else 0.18f))
                 }
                 if (dark) drawRect(Brush.radialGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f)), center = Offset(w / 2, h / 2), radius = h * 0.75f))
             }

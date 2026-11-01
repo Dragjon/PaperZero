@@ -1,5 +1,14 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.feedGround
+import dev.olaf.paperzero.core.design.SkinBackdrop
+import dev.olaf.paperzero.core.design.LocalSkin
+import androidx.compose.runtime.key
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material.icons.rounded.Timer
@@ -264,7 +273,10 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     }
 
     CompositionLocalProvider(LocalContentColor provides Ink) {
-        Box(Modifier.fillMaxSize().background(Color.Black)) {
+        // The skin's night ground, and its artwork behind the questions.
+        val ground = feedGround(LocalSkin.current)
+        Box(Modifier.fillMaxSize().background(ground)) {
+            SkinBackdrop(Modifier.fillMaxSize(), night = true)
             if (pages.isEmpty()) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else {
@@ -335,7 +347,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
+                    .background(Brush.verticalGradient(listOf(ground.copy(alpha = 0.7f), Color.Transparent)))
                     .statusBarsPadding()
                     .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -403,142 +415,140 @@ private fun QuestionPage(
     val success = LocalPaperExtras.current.success
     val image by rememberAssetImage(question.image)
     val picture = picture()
-    // A double tap likes it (never unlikes), with a heart that blooms and fades.
-    val heart = remember { Animatable(0f) }
-    var hearts by remember { mutableIntStateOf(0) }
-    LaunchedEffect(hearts) {
-        if (hearts == 0) return@LaunchedEffect
-        heart.snapTo(0f)
-        heart.animateTo(1f, tween(700))
+    val haptics = LocalHapticFeedback.current
+    val bursts = remember { mutableStateListOf<Burst>() }
+    var likes by remember { mutableIntStateOf(0) }
+    // Where the page and the picture are on screen, to put a burst where the picture was tapped.
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    var pictureAt by remember { mutableStateOf(Offset.Zero) }
+    fun likeAt(at: Offset) {
+        if (!liked) onLike(true)
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        bursts += Burst(at, ++likes)
     }
 
-    Column(Modifier.fillMaxSize().widthIn(max = 640.dp).statusBarsPadding().navigationBarsPadding().padding(top = TOP_ROOM)) {
-        // The question, as printed, as big as fits; tap to look closer.
-        Box(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .pointerInput(question.key, liked) {
-                    detectTapGestures(
-                        onTap = { onZoom(question.image) },
-                        onDoubleTap = {
-                            if (!liked) onLike(true)
-                            hearts++
-                        },
-                    )
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            val shown = image
-            if (shown != null) {
-                Image(
-                    shown,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    colorFilter = picture.filter,
-                    modifier = Modifier
-                        .padding(horizontal = 8.dp)
-                        .background(picture.ground, MaterialTheme.shapes.medium)
-                        .padding(8.dp),
-                )
-            }
-            val t = heart.value
-            if (t > 0f && t < 1f) {
-                Icon(
-                    Icons.Rounded.Favorite,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(120.dp).graphicsLayer {
-                        val grow = (t * 4).coerceAtMost(1f)
-                        scaleX = 0.5f + 0.6f * grow
-                        scaleY = 0.5f + 0.6f * grow
-                        alpha = if (t < 0.6f) 1f else (1f - t) / 0.4f
-                    },
-                )
-            }
-        }
-        // Who posted it and its tags, beside the rail of actions, as a reel has them.
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.size(36.dp)) {
-                        Box(contentAlignment = Alignment.Center) { subject?.let { Icon(it.icon, contentDescription = null, modifier = Modifier.size(20.dp)) } }
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text(source, style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            listOfNotNull(subject?.let { subjectName(it) }, stringResource(R.string.question_label, question.number)).joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = InkSoft,
+    // Double tap anywhere not a button (the picture or the space round it) to like it, never to
+    // unlike; each like bursts where it was tapped.
+    Box(
+        Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { origin = it.positionInRoot() }
+            .pointerInput(question.key, liked) { detectTapGestures(onDoubleTap = { likeAt(it) }) },
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(Modifier.fillMaxSize().widthIn(max = 640.dp).statusBarsPadding().navigationBarsPadding().padding(top = TOP_ROOM)) {
+            // The question, as printed, as big as fits; tap to look closer.
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .onGloballyPositioned { pictureAt = it.positionInRoot() }
+                    .pointerInput(question.key, liked) {
+                        detectTapGestures(
+                            onTap = { onZoom(question.image) },
+                            onDoubleTap = { likeAt(it + pictureAt - origin) },
                         )
-                    }
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                val shown = image
+                if (shown != null) {
+                    Image(
+                        shown,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        colorFilter = picture.filter,
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .background(picture.ground, MaterialTheme.shapes.medium)
+                            .padding(8.dp),
+                    )
                 }
-                if (topics.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        topics.forEach { (name, topic) ->
-                            Surface(onClick = { onTopic(topic) }, shape = CircleShape, color = Glass, contentColor = Ink) {
-                                Text("# $name", style = MaterialTheme.typography.labelLarge, maxLines = 1, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+            }
+            // Who posted it and its tags, beside the rail of actions, as a reel has them.
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.Bottom) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(shape = CircleShape, color = colors.primaryContainer, contentColor = colors.onPrimaryContainer, modifier = Modifier.size(36.dp)) {
+                            Box(contentAlignment = Alignment.Center) { subject?.let { Icon(it.icon, contentDescription = null, modifier = Modifier.size(20.dp)) } }
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(source, style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                listOfNotNull(subject?.let { subjectName(it) }, stringResource(R.string.question_label, question.number)).joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = InkSoft,
+                            )
+                        }
+                    }
+                    if (topics.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            topics.forEach { (name, topic) ->
+                                Surface(onClick = { onTopic(topic) }, shape = CircleShape, color = Glass, contentColor = Ink) {
+                                    Text("# $name", style = MaterialTheme.typography.labelLarge, maxLines = 1, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                                }
                             }
                         }
                     }
-                }
-                if (mine != null) {
-                    val ok = mine == question.answer
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Close, contentDescription = null, tint = if (ok) success else colors.error, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(if (ok) stringResource(R.string.right) else stringResource(R.string.wrong_answer, question.answer), style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            stringResource(R.string.undo_misclick),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = InkSoft,
-                            modifier = Modifier.clip(CircleShape).clickable(onClick = onUndo).padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
+                    if (mine != null) {
+                        val ok = mine == question.answer
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(if (ok) Icons.Rounded.Check else Icons.Rounded.Close, contentDescription = null, tint = if (ok) success else colors.error, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (ok) stringResource(R.string.right) else stringResource(R.string.wrong_answer, question.answer), style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                stringResource(R.string.undo_misclick),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = InkSoft,
+                                modifier = Modifier.clip(CircleShape).clickable(onClick = onUndo).padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                    comments.lastOrNull()?.let { last ->
+                        Text(last.text, style = MaterialTheme.typography.bodyMedium, color = InkSoft, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable(onClick = onComments))
                     }
                 }
-                comments.lastOrNull()?.let { last ->
-                    Text(last.text, style = MaterialTheme.typography.bodyMedium, color = InkSoft, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable(onClick = onComments))
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    RailAction(
+                        if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        stringResource(if (liked) R.string.unlike else R.string.like),
+                        stringResource(R.string.like),
+                        tint = if (liked) colors.primary else Ink,
+                    ) { onLike(!liked) }
+                    RailAction(Icons.Rounded.ChatBubble, stringResource(R.string.comments), if (comments.isEmpty()) stringResource(R.string.comment) else "${comments.size}", onClick = onComments)
+                    val explain = question.explain
+                    if (mine != null && explain != null) {
+                        RailAction(Icons.Rounded.Lightbulb, stringResource(R.string.working), stringResource(R.string.working_short)) { onZoom(explain) }
+                    }
+                    RailAction(Icons.Rounded.Share, stringResource(R.string.share), stringResource(R.string.share), onClick = onShare)
+                    RailAction(Icons.Rounded.OutlinedFlag, stringResource(R.string.report_title), stringResource(R.string.report), onClick = onReport)
                 }
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                RailAction(
-                    if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    stringResource(if (liked) R.string.unlike else R.string.like),
-                    stringResource(R.string.like),
-                    tint = if (liked) colors.primary else Ink,
-                ) { onLike(!liked) }
-                RailAction(Icons.Rounded.ChatBubble, stringResource(R.string.comments), if (comments.isEmpty()) stringResource(R.string.comment) else "${comments.size}", onClick = onComments)
-                val explain = question.explain
-                if (mine != null && explain != null) {
-                    RailAction(Icons.Rounded.Lightbulb, stringResource(R.string.working), stringResource(R.string.working_short)) { onZoom(explain) }
-                }
-                RailAction(Icons.Rounded.Share, stringResource(R.string.share), stringResource(R.string.share), onClick = onShare)
-                RailAction(Icons.Rounded.OutlinedFlag, stringResource(R.string.report_title), stringResource(R.string.report), onClick = onReport)
-            }
-        }
-        // Try it: A to D, marked at once.
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf('A', 'B', 'C', 'D').forEach { letter ->
-                val (fill, ink) = when {
-                    mine != null && letter == question.answer -> success to Color.Black
-                    mine != null && letter == mine -> colors.error to colors.onError
-                    mine != null -> Glass to InkSoft.copy(alpha = 0.4f)
-                    else -> Glass to Ink
-                }
-                Surface(
-                    onClick = { if (mine == null) onChoose(letter) },
-                    shape = MaterialTheme.shapes.medium,
-                    color = fill,
-                    contentColor = ink,
-                    // A splash round it, if it's the one chosen and it's right.
-                    modifier = Modifier.weight(1f).height(48.dp).splash(mine == letter && letter == question.answer, success),
-                ) {
-                    Box(contentAlignment = Alignment.Center) { Text(letter.toString(), style = MaterialTheme.typography.titleMedium) }
+            // Try it: A to D, marked at once.
+            Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf('A', 'B', 'C', 'D').forEach { letter ->
+                    val (fill, ink) = when {
+                        mine != null && letter == question.answer -> success to Color.Black
+                        mine != null && letter == mine -> colors.error to colors.onError
+                        mine != null -> Glass to InkSoft.copy(alpha = 0.4f)
+                        else -> Glass to Ink
+                    }
+                    Surface(
+                        onClick = { if (mine == null) onChoose(letter) },
+                        shape = MaterialTheme.shapes.medium,
+                        color = fill,
+                        contentColor = ink,
+                        // A splash round it, if it's the one chosen and it's right.
+                        modifier = Modifier.weight(1f).height(48.dp).splash(mine == letter && letter == question.answer, success),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) { Text(letter.toString(), style = MaterialTheme.typography.titleMedium) }
+                    }
                 }
             }
         }
+        bursts.forEach { b -> key(b.seed) { LikeBurst(b) { bursts.remove(b) } } }
     }
 }
 

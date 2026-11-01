@@ -107,6 +107,12 @@ internal fun dockFor(skin: Skin, dark: Boolean): Pair<Color, Color>? {
     return if (dark) lerp(ground, Color.White, 0.13f) to ink.copy(alpha = 0.14f) else Color.White to lerp(ground, ink, 0.12f)
 }
 
+/**
+ * What a feed stands on in [skin]: the feed is dark in any theme, so it's the skin's night ground;
+ * black for the classic look, as a reel's is.
+ */
+fun feedGround(skin: Skin): Color = Night[skin]?.let { Color(it.ground) } ?: Color.Black
+
 /** Chalk Olaf's inks on [skin]: his chalk, carrot, twigs, and the skin's own colour for what he has on. */
 class OlafInks(val chalk: Color, val carrot: Color, val twig: Color, val accent: Color)
 
