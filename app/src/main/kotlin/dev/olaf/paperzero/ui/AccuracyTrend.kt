@@ -1,5 +1,10 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -54,6 +59,7 @@ import kotlin.math.roundToInt
  * whether the trend is clear of chance. One science or all of them; a window of 10, 20 or 50. Touch
  * the chart to read any point.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AccuracyTrend(s: Stats) {
     val answered = s.subjects.filter { ss -> s.history.any { it.first == ss.subject } }.map { it.subject }
@@ -79,8 +85,8 @@ fun AccuracyTrend(s: Stats) {
                     answered.forEach { sub -> Chip(subjectName(sub), subject == sub, subtle = true) { subject = sub } }
                 }
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.trend_window), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.trend_window), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterVertically))
                     WINDOWS.forEach { w -> Chip(w.toString(), window == w, subtle = true) { window = w } }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -126,6 +132,11 @@ private fun Chart(t: Trend) {
     val described = stringResource(R.string.trend_chart_description, n, t.first ?: 0, t.last ?: 0)
     val tickStyle = type.labelSmall.copy(color = colors.onSurfaceVariant)
     val readStyle = type.labelMedium.copy(color = colors.onSurface)
+    // Room at the left for the percentages, as wide as "100%" is at the text size in use.
+    val density = LocalDensity.current
+    val axis = remember(tickStyle, density) { measurer.measure("100%", tickStyle).size.width + with(density) { 6.dp.toPx() } }
+    // Room at the top for a reading, one line of it.
+    val readRoom = remember(readStyle, density) { measurer.measure("0", readStyle).size.height + with(density) { 6.dp.toPx() } }
     val readText = reading?.let { i ->
         stringResource(R.string.trend_reading, i + 1, (t.rolling[i - (t.window - 1)] * 100).roundToInt(), t.window)
     }
@@ -136,13 +147,13 @@ private fun Chart(t: Trend) {
                 .fillMaxWidth()
                 .height(200.dp)
                 .semantics { contentDescription = described }
-                .pointerInput(t) {
-                    val left = AXIS.toPx()
+                .pointerInput(t, axis) {
+                    val left = axis
                     fun at(x: Float) = (((x - left) / (size.width - left)) * (n - 1)).roundToInt().coerceIn(t.window - 1, n - 1)
                     detectTapGestures(onPress = { reading = at(it.x); tryAwaitRelease(); reading = null })
                 }
-                .pointerInput(t) {
-                    val left = AXIS.toPx()
+                .pointerInput(t, axis) {
+                    val left = axis
                     fun at(x: Float) = (((x - left) / (size.width - left)) * (n - 1)).roundToInt().coerceIn(t.window - 1, n - 1)
                     detectHorizontalDragGestures(
                         onDragStart = { reading = at(it.x) },
@@ -151,8 +162,8 @@ private fun Chart(t: Trend) {
                     ) { change, _ -> reading = at(change.position.x) }
                 },
         ) {
-            val left = AXIS.toPx()
-            val top = 22.dp.toPx()
+            val left = axis
+            val top = readRoom
             val bottom = size.height - 18.dp.toPx()
             val w = size.width - left
             fun x(i: Int) = left + w * i / (n - 1).coerceAtLeast(1)
@@ -199,8 +210,14 @@ private fun Chart(t: Trend) {
                 drawCircle(colors.surfaceContainer, 7.dp.toPx(), p)
                 drawCircle(colors.primary, 5.dp.toPx(), p)
                 readText?.let { text ->
-                    val label = measurer.measure(text, readStyle)
-                    val lx = (p.x - label.size.width / 2).coerceIn(left, size.width - label.size.width)
+                    val label = measurer.measure(
+                        text,
+                        readStyle,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        constraints = Constraints(maxWidth = size.width.toInt().coerceAtLeast(0)),
+                    )
+                    val lx = (p.x - label.size.width / 2).coerceAtMost(size.width - label.size.width).coerceAtLeast(0f)
                     drawText(label, topLeft = Offset(lx, 0f))
                 }
             }
@@ -208,13 +225,11 @@ private fun Chart(t: Trend) {
     }
 }
 
-/** Room at the left of the chart for its percentages. */
-private val AXIS = 36.dp
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Legend(window: Int) {
     val colors = MaterialTheme.colorScheme
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Key(colors.primary, dashed = false, stringResource(R.string.trend_key_rolling, window))
         Key(colors.onSurfaceVariant, dashed = true, stringResource(R.string.trend_key_trend))
     }
