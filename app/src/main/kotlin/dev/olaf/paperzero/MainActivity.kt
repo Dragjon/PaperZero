@@ -60,7 +60,7 @@ private fun SessionTheme(app: PaperZeroApplication, sessionId: Long, content: @C
 @Composable
 private fun SettingsTheme(settings: Settings, content: @Composable () -> Unit) {
     val density = LocalDensity.current
-    PaperTheme(themeMode = settings.theme, dynamicColor = settings.wallpaperColour, ground = settings.ground) {
+    PaperTheme(themeMode = settings.theme, dynamicColor = settings.wallpaperColour, ground = settings.ground, skin = settings.skin) {
         CompositionLocalProvider(
             LocalSettings provides settings,
             LocalDensity provides Density(density.density, density.fontScale * settings.textSize.scale),

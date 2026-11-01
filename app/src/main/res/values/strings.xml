@@ -141,6 +141,14 @@
     <string name="theme_system">Device</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="settings_skin">Skin</string>
+    <string name="settings_skin_description">The app\'s colours, and what Olaf has on</string>
+    <string name="skin_classic">Classic</string>
+    <string name="skin_chalkboard">Chalkboard</string>
+    <string name="skin_summer">Summer</string>
+    <string name="skin_aurora">Aurora</string>
+    <string name="skin_lab">Lab</string>
+    <string name="skin_sakura">Sakura</string>
     <string name="settings_ground">Background</string>
     <string name="settings_ground_description">Black is for the dark theme, and saves battery on OLED screens</string>
     <string name="ground_warm">Warm</string>

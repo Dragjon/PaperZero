@@ -3,6 +3,7 @@ package dev.olaf.paperzero.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +47,10 @@ import dev.olaf.paperzero.R
 import dev.olaf.paperzero.Settings
 import dev.olaf.paperzero.TextSize
 import dev.olaf.paperzero.core.data.Progresses
+import dev.olaf.paperzero.core.design.ChalkOlaf
 import dev.olaf.paperzero.core.design.Ground
+import dev.olaf.paperzero.core.design.PaperTheme
+import dev.olaf.paperzero.core.design.Skin
 import dev.olaf.paperzero.core.design.ThemeMode
 import kotlinx.coroutines.launch
 
@@ -75,10 +79,12 @@ fun SettingsScreen(settings: Settings, onChange: ((Settings) -> Settings) -> Uni
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Section(stringResource(R.string.settings_look)) {
+                SkinPicker(settings) { v -> onChange { it.copy(skin = v) } }
                 Choice(stringResource(R.string.settings_theme), null, ThemeMode.entries, settings.theme, {
                     stringResource(when (it) { ThemeMode.System -> R.string.theme_system; ThemeMode.Light -> R.string.theme_light; ThemeMode.Dark -> R.string.theme_dark })
                 }) { v -> onChange { it.copy(theme = v) } }
-                Choice(stringResource(R.string.settings_ground), stringResource(R.string.settings_ground_description), Ground.entries, settings.ground, {
+                // A skin brings its own ground, so the background is only a choice in the classic one.
+                if (settings.skin == Skin.Classic) Choice(stringResource(R.string.settings_ground), stringResource(R.string.settings_ground_description), Ground.entries, settings.ground, {
                     stringResource(when (it) { Ground.Warm -> R.string.ground_warm; Ground.Neutral -> R.string.ground_neutral; Ground.Black -> R.string.ground_black })
                 }) { v -> onChange { it.copy(ground = v) } }
                 Toggle(stringResource(R.string.settings_science_colours), stringResource(R.string.settings_science_colours_description), settings.scienceColours) { v -> onChange { it.copy(scienceColours = v) } }
@@ -218,4 +224,49 @@ private fun Action(title: String, description: String, onClick: () -> Unit) {
         Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
         Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+/** The skins, each as a little card in its own colours with Olaf dressed for it. */
+@Composable
+private fun SkinPicker(settings: Settings, onChoose: (Skin) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        Label(stringResource(R.string.settings_skin), stringResource(R.string.settings_skin_description), Modifier.padding(horizontal = 20.dp))
+        Spacer(Modifier.height(10.dp))
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Skin.entries.forEach { skin ->
+                val name = stringResource(skinName(skin))
+                val chosen = skin == settings.skin
+                // Each card is drawn in its own skin, light or dark as the app is set.
+                PaperTheme(themeMode = settings.theme, skin = skin) {
+                    val colors = MaterialTheme.colorScheme
+                    Surface(
+                        selected = chosen,
+                        onClick = { onChoose(skin) },
+                        shape = MaterialTheme.shapes.large,
+                        color = colors.background,
+                        border = if (chosen) BorderStroke(3.dp, colors.primary) else BorderStroke(1.dp, colors.outlineVariant),
+                        modifier = Modifier.width(112.dp),
+                    ) {
+                        Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            ChalkOlaf(Modifier.fillMaxWidth().height(80.dp), skin)
+                            Spacer(Modifier.height(4.dp))
+                            Text(name, style = MaterialTheme.typography.labelLarge, color = colors.onBackground)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun skinName(skin: Skin) = when (skin) {
+    Skin.Classic -> R.string.skin_classic
+    Skin.Chalkboard -> R.string.skin_chalkboard
+    Skin.Summer -> R.string.skin_summer
+    Skin.Aurora -> R.string.skin_aurora
+    Skin.Lab -> R.string.skin_lab
+    Skin.Sakura -> R.string.skin_sakura
 }

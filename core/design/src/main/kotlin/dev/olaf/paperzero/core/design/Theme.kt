@@ -205,16 +205,21 @@ fun PaperTheme(
     themeMode: ThemeMode = ThemeMode.System,
     dynamicColor: Boolean = false,
     ground: Ground = Ground.Warm,
+    skin: Skin = Skin.Classic,
     content: @Composable () -> Unit,
 ) {
     val dark = isDarkTheme(themeMode)
-    val base = (if (dark) NightScheme else DayScheme).on(ground, dark)
+    // A skin brings its own ground; the Background setting dresses only the classic look.
+    val base = (if (dark) NightScheme else DayScheme).let { if (skin == Skin.Classic) it.on(ground, dark) else it.dressed(skin, dark) }
     val scheme = if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         withWallpaperAction(base, dark)
     } else {
         base
     }
-    CompositionLocalProvider(LocalPaperExtras provides if (dark) NightExtras else DayExtras) {
+    val extras = (if (dark) NightExtras else DayExtras).let { e ->
+        dockFor(skin, dark)?.let { (dock, edge) -> e.copy(dock = dock, dockEdge = edge) } ?: e
+    }
+    CompositionLocalProvider(LocalPaperExtras provides extras, LocalSkin provides skin) {
         MaterialTheme(
             colorScheme = scheme,
             typography = PaperTypography,

@@ -3,6 +3,7 @@ package dev.olaf.paperzero
 import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
 import dev.olaf.paperzero.core.design.Ground
+import dev.olaf.paperzero.core.design.Skin
 import dev.olaf.paperzero.core.design.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,8 @@ enum class MemeFrequency(val every: Int) { Rare(15), Sometimes(8), Often(4) }
 
 data class Settings(
     val theme: ThemeMode = ThemeMode.System,
+    /** How the app is dressed, chalk Olaf with it. */
+    val skin: Skin = Skin.Classic,
     val ground: Ground = Ground.Warm,
     /** Each science's screens in its own colours; else the app's orange throughout. */
     val scienceColours: Boolean = true,
@@ -46,6 +49,7 @@ class SettingsStore(context: Context) {
         val d = Settings()
         return Settings(
             theme = enum("theme", d.theme),
+            skin = enum("skin", d.skin),
             ground = enum("ground", d.ground),
             scienceColours = prefs.getBoolean("scienceColours", d.scienceColours),
             wallpaperColour = prefs.getBoolean("wallpaperColour", d.wallpaperColour),
@@ -62,6 +66,7 @@ class SettingsStore(context: Context) {
         val s = change(state.value)
         prefs.edit()
             .putString("theme", s.theme.name)
+            .putString("skin", s.skin.name)
             .putString("ground", s.ground.name)
             .putBoolean("scienceColours", s.scienceColours)
             .putBoolean("wallpaperColour", s.wallpaperColour)
