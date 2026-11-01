@@ -8,8 +8,8 @@ android {
     namespace = "dev.olaf.paperzero"
     defaultConfig {
         applicationId = "dev.olaf.paperzero"
-        versionCode = 10
-        versionName = "0.3.4"
+        versionCode = 11
+        versionName = "0.3.5"
     }
     buildTypes {
         debug {
