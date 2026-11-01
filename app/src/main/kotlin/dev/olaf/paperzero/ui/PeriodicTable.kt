@@ -1,5 +1,21 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animate
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.input.pointer.pointerInput
@@ -17,7 +33,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,8 +71,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import dev.olaf.paperzero.R
 
 /** An element: its proton number, symbol, name, and relative atomic mass as the data sheet gives it (null if none). */
@@ -138,13 +151,16 @@ private fun groupName(g: Int): String? = when (g) {
 
 /**
  * The Periodic Table, over everything: every element with its proton number and relative atomic
- * mass, coloured by family, scrolling both ways. Tap one for its name, group and period.
+ * mass, coloured by family, fitted to the screen and zoomable. Tap one for its name, group and period.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PeriodicTableDialog(onDismiss: () -> Unit) {
     var picked by rememberSaveable { mutableStateOf<Int?>(null) }
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    // A screen over the question within the app's own window (not a separate dialog window),
+    // so it knows where the status and navigation bars are and keeps clear of them. Back closes it.
+    BackHandler(onBack = onDismiss)
+    run {
         val colors = MaterialTheme.colorScheme
         Surface(color = colors.background, modifier = Modifier.fillMaxSize()) {
             Column(Modifier.statusBarsPadding().navigationBarsPadding()) {
@@ -290,15 +306,18 @@ private fun Gap(text: String) {
 
 /**
  * [content] at its own size, scaled down to fit this box to begin with. Pinch to zoom in (up to
- * [MAX_ZOOM] times the fitted size) and drag to move about once it's bigger than the box; the
- * buttons do the same with a tap, and the last one fits it back. Taps go through to the content
- * at any zoom.
+ * [MAX_ZOOM] times the fitted size) and drag to move about once it's bigger than the box, with a
+ * glide when let go; the buttons zoom with a tap, and the last one fits it back. Pinches and drags
+ * are taken before the content sees them, so they work wherever the fingers land (on an element
+ * or not); a tap that doesn't move still goes through to the content, at any zoom.
  */
 @Composable
 private fun ZoomToFit(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     var natural by remember { mutableStateOf(IntSize.Zero) }
     var zoom by rememberSaveable { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+    val scope = rememberCoroutineScope()
+    var moving by remember { mutableStateOf<Job?>(null) }
     BoxWithConstraints(modifier.clipToBounds()) {
         val w = constraints.maxWidth.toFloat()
         val h = constraints.maxHeight.toFloat()
@@ -318,14 +337,58 @@ private fun ZoomToFit(modifier: Modifier = Modifier, content: @Composable () -> 
             offset = settle(about - (about - offset) * (z / zoom), fit * z)
             zoom = z
         }
+        /** Zoom smoothly to [target] about the middle, for the buttons. */
+        fun animateZoom(target: Float) {
+            moving?.cancel()
+            moving = scope.launch {
+                animate(zoom, target.coerceIn(1f, MAX_ZOOM), animationSpec = tween(220)) { z, _ -> zoomTo(z, Offset(w / 2, h / 2)) }
+            }
+        }
         LaunchedEffect(natural, w, h) { offset = settle(offset, fit * zoom) }
         Box(
             Modifier
                 .fillMaxSize()
                 .pointerInput(natural, w, h) {
-                    detectTransformGestures { centroid, pan, gesture, _ ->
-                        zoomTo(zoom * gesture, centroid)
-                        offset = settle(offset + pan, fit * zoom)
+                    awaitEachGesture {
+                        // On the way in (before the elements): a pinch, or a drag past the touch
+                        // slop, is ours wherever it lands; a tap is left to the element under it.
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        moving?.cancel()
+                        val velocity = VelocityTracker()
+                        velocity.addPosition(down.uptimeMillis, down.position)
+                        var dragging = false
+                        var travelled = Offset.Zero
+                        do {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val fingers = event.changes.count { it.pressed }
+                            if (fingers >= 2) {
+                                dragging = true
+                                zoomTo(zoom * event.calculateZoom(), event.calculateCentroid(useCurrent = true))
+                                offset = settle(offset + event.calculatePan(), fit * zoom)
+                                event.changes.forEach { it.consume() }
+                            } else if (fingers == 1) {
+                                val pan = event.calculatePan()
+                                if (!dragging) {
+                                    travelled += pan
+                                    dragging = travelled.getDistance() > viewConfiguration.touchSlop
+                                }
+                                if (dragging) {
+                                    offset = settle(offset + pan, fit * zoom)
+                                    event.changes.forEach { it.consume() }
+                                }
+                                event.changes.firstOrNull { it.pressed }?.let { velocity.addPosition(it.uptimeMillis, it.position) }
+                            }
+                        } while (event.changes.any { it.pressed })
+                        // Let go of a drag: it glides on and slows to a stop.
+                        if (dragging) {
+                            val v = velocity.calculateVelocity()
+                            val start = offset
+                            moving = scope.launch {
+                                Animatable(start, Offset.VectorConverter).animateDecay(Offset(v.x, v.y), exponentialDecay(frictionMultiplier = 1.6f)) {
+                                    offset = settle(value, fit * zoom)
+                                }
+                            }
+                        }
                     }
                 },
         ) {
@@ -353,9 +416,9 @@ private fun ZoomToFit(modifier: Modifier = Modifier, content: @Composable () -> 
             Modifier.align(Alignment.BottomEnd).padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            ZoomButton(Icons.Rounded.Add, stringResource(R.string.pt_zoom_in), enabled = zoom < MAX_ZOOM) { zoomTo(zoom * 1.6f, centre) }
-            ZoomButton(Icons.Rounded.Remove, stringResource(R.string.pt_zoom_out), enabled = zoom > 1f) { zoomTo(zoom / 1.6f, centre) }
-            ZoomButton(Icons.Rounded.FitScreen, stringResource(R.string.pt_zoom_fit), enabled = zoom > 1f) { zoomTo(1f, centre) }
+            ZoomButton(Icons.Rounded.Add, stringResource(R.string.pt_zoom_in), enabled = zoom < MAX_ZOOM) { animateZoom(zoom * 1.6f) }
+            ZoomButton(Icons.Rounded.Remove, stringResource(R.string.pt_zoom_out), enabled = zoom > 1f) { animateZoom(zoom / 1.6f) }
+            ZoomButton(Icons.Rounded.FitScreen, stringResource(R.string.pt_zoom_fit), enabled = zoom > 1f) { animateZoom(1f) }
         }
     }
 }
