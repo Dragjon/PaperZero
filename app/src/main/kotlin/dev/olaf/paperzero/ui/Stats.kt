@@ -57,7 +57,6 @@ import dev.olaf.paperzero.core.data.Stats
 import dev.olaf.paperzero.core.data.Subject
 import dev.olaf.paperzero.core.data.SubjectStats
 import dev.olaf.paperzero.core.data.TopicStats
-import dev.olaf.paperzero.core.design.LocalPaperExtras
 import dev.olaf.paperzero.core.design.pressScale
 import java.time.format.TextStyle
 import java.util.Locale
@@ -334,26 +333,23 @@ private fun Topic(t: TopicStats, showSubject: Boolean, onClick: () -> Unit) {
             }
             if (!untried) {
                 Spacer(Modifier.height(8.dp))
-                Bar(t.tally.right.toFloat() / t.tally.answered, accuracy = true)
+                Bar(t.tally.right.toFloat() / t.tally.answered)
             }
         }
     }
 }
 
-/** A thin rounded bar: how far, or (green when mostly right) how often right. */
+/**
+ * A thin rounded bar: how far, or how often right, in the science's own colour (its length and the
+ * percentage beside it say how well it's going).
+ */
 @Composable
-private fun Bar(fraction: Float, accuracy: Boolean = false) {
+private fun Bar(fraction: Float) {
     val colors = MaterialTheme.colorScheme
-    val color = when {
-        !accuracy -> colors.primary
-        fraction >= 0.7f -> LocalPaperExtras.current.success
-        fraction >= 0.4f -> colors.primary
-        else -> colors.error
-    }
     LinearProgressIndicator(
         progress = { fraction.coerceIn(0f, 1f) },
         modifier = Modifier.fillMaxWidth().height(6.dp),
-        color = color,
+        color = colors.primary,
         trackColor = colors.surfaceContainerHigh,
         strokeCap = StrokeCap.Round,
         drawStopIndicator = {},
