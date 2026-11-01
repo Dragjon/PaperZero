@@ -1,5 +1,7 @@
 package dev.olaf.paperzero.ui
 
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Calculate
 import dev.olaf.paperzero.core.design.feedGround
 import dev.olaf.paperzero.core.design.SkinBackdrop
 import dev.olaf.paperzero.core.design.LocalSkin
@@ -164,6 +166,9 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     var zoomed by remember { mutableStateOf<String?>(null) }
     var commenting by remember { mutableStateOf<Question?>(null) }
     var reporting by remember { mutableStateOf<Pair<Question, String>?>(null) }
+    // The tools: a calculator floating over the feed, and (for Chemistry) the Periodic Table.
+    var calculating by rememberSaveable { mutableStateOf(false) }
+    var table by rememberSaveable { mutableStateOf(false) }
     var tried by remember { mutableIntStateOf(0) }
     var right by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -354,11 +359,19 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
             ) {
                 IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.close)) }
                 Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                val onScreen = (pages.getOrNull(pager.currentPage) as? Page.Ask)?.let { pack.paper(it.question.paperId)?.subject }
+                if (onScreen == Subject.Chemistry) {
+                    IconButton(onClick = { table = true }) { Icon(Icons.Rounded.GridView, contentDescription = stringResource(R.string.pt_title)) }
+                }
+                IconButton(onClick = { calculating = !calculating }) {
+                    Icon(Icons.Rounded.Calculate, contentDescription = stringResource(R.string.calculator), tint = if (calculating) MaterialTheme.colorScheme.primary else Ink)
+                }
                 ScrollTimer(scrolled)
                 if (tried > 0) {
                     Text(stringResource(R.string.scroll_score, right, tried), style = MaterialTheme.typography.titleMedium, color = InkSoft, modifier = Modifier.padding(end = 12.dp))
                 }
             }
+            if (calculating) FloatingCalculator { calculating = false }
         }
     }
 
@@ -371,6 +384,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
         )
     }
     reporting?.let { (q, from) -> ReportSheet(q, from) { reporting = null } }
+    if (table) PeriodicTableDialog { table = false }
     zoomed?.let { path -> Zoomed(path) { zoomed = null } }
 }
 

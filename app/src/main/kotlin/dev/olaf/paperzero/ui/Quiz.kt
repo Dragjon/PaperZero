@@ -1,5 +1,9 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.data.Subject
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.OutlinedFlag
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -116,6 +120,8 @@ fun QuizScreen(
     var grid by remember { mutableStateOf(false) }
     var zoomed by remember { mutableStateOf<String?>(null) }
     var reporting by remember { mutableStateOf(false) }
+    var calculating by rememberSaveable { mutableStateOf(false) }
+    var table by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(sessionId) {
@@ -196,6 +202,12 @@ fun QuizScreen(
                     color = if (left < 300) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
+            }
+            if (pack.paper(question.paperId)?.subject == Subject.Chemistry) {
+                IconButton(onClick = { table = true }) { Icon(Icons.Rounded.GridView, contentDescription = stringResource(R.string.pt_title)) }
+            }
+            IconButton(onClick = { calculating = !calculating }) {
+                Icon(Icons.Rounded.Calculate, contentDescription = stringResource(R.string.calculator), tint = if (calculating) MaterialTheme.colorScheme.primary else LocalContentColor.current)
             }
             IconButton(onClick = { reporting = true }) { Icon(Icons.Rounded.OutlinedFlag, contentDescription = stringResource(R.string.report_title)) }
             IconButton(onClick = { grid = true }) { Icon(Icons.Rounded.Apps, contentDescription = stringResource(R.string.all_questions)) }
@@ -303,6 +315,8 @@ fun QuizScreen(
             dismissButton = { TextButton(onClick = { leaving = false }) { Text(stringResource(R.string.keep_going), color = MaterialTheme.colorScheme.onSurfaceVariant) } },
         )
     }
+    if (calculating) FloatingCalculator { calculating = false }
+    if (table) PeriodicTableDialog { table = false }
     if (reporting) ReportSheet(question, pack.paper(question.paperId)?.let { progresses.title(it) } ?: s.title) { reporting = false }
     zoomed?.let { path ->
         Dialog(onDismissRequest = { zoomed = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {

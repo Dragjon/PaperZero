@@ -8,8 +8,8 @@ android {
     namespace = "dev.olaf.paperzero"
     defaultConfig {
         applicationId = "dev.olaf.paperzero"
-        versionCode = 8
-        versionName = "0.3.2"
+        versionCode = 9
+        versionName = "0.3.3"
     }
     buildTypes {
         debug {
@@ -36,6 +36,7 @@ android {
 dependencies {
     implementation(project(":core:design"))
     implementation(project(":core:data"))
+    testImplementation(libs.junit)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
