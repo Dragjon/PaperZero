@@ -144,6 +144,7 @@ fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, I
                 }
             }
             item { Week(s) }
+            item { AccuracyTrend(s) }
             if (s.fixed > 0) {
                 item {
                     Card {

@@ -31,6 +31,8 @@ data class Stats(
     val fixed: Int,
     val subjects: List<SubjectStats>,
     val topics: List<TopicStats>,
+    /** Every answer's science and whether it was right, oldest first: for the trend over answers. */
+    val history: List<Pair<Subject, Boolean>> = emptyList(),
 ) {
     companion object {
         const val DAYS = 7
@@ -74,8 +76,10 @@ data class Stats(
             var week = Tally()
             val weekStart = today.minusDays(6)
             val active = HashSet<LocalDate>()
+            val history = ArrayList<Pair<Subject, Boolean>>(answers.size)
             for (a in answers) {
                 val s = subject(a.questionKey) ?: continue
+                history += s to a.correct
                 tally += a.correct
                 bySubject[s] = (bySubject[s] ?: Tally()) + a.correct
                 val day = Instant.ofEpochMilli(a.at).atZone(zone).toLocalDate()
@@ -121,6 +125,7 @@ data class Stats(
                 fixed = fixedNow.size,
                 subjects = subjects,
                 topics = topics,
+                history = history,
             )
         }
     }
