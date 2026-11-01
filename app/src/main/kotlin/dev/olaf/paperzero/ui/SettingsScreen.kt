@@ -277,4 +277,6 @@ private fun skinName(skin: Skin) = when (skin) {
     Skin.Lab -> R.string.skin_lab
     Skin.Sakura -> R.string.skin_sakura
     Skin.Halloween -> R.string.skin_halloween
+    Skin.Frost -> R.string.skin_frost
+    Skin.Arcade -> R.string.skin_arcade
 }

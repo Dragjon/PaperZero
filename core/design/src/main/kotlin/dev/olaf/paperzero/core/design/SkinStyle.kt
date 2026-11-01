@@ -1,5 +1,8 @@
 package dev.olaf.paperzero.core.design
 
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +69,10 @@ internal fun shapesFor(skin: Skin): Shapes = when (skin) {
     // Petal-shaped: two corners full, two barely.
     Skin.Sakura -> Shapes(petal(8), petal(12), petal(16), petal(24), petal(28))
     // Cut corners, a little sharp and spooky.
+    // Ice shards: two opposite corners cut sharp, the other two barely.
+    Skin.Frost -> Shapes(shard(6), shard(8), shard(12), shard(16), shard(20))
+    // Pixel art: corners stepped in blocks.
+    Skin.Arcade -> Shapes(PixelShape(2.dp, 1), PixelShape(3.dp, 2), PixelShape(3.dp, 2), PixelShape(4.dp, 2), PixelShape(4.dp, 3))
     Skin.Halloween -> Shapes(CutCornerShape(4.dp), CutCornerShape(6.dp), CutCornerShape(8.dp), CutCornerShape(12.dp), CutCornerShape(14.dp))
 }
 
@@ -76,6 +84,41 @@ private fun stepped(vararg r: Int) = Shapes(
     extraLarge = RoundedCornerShape(r[4].dp),
 )
 
+private fun shard(r: Int): CornerBasedShape = CutCornerShape(topStart = r.dp, topEnd = (r / 5).dp, bottomEnd = r.dp, bottomStart = (r / 5).dp)
+
+/** A rectangle whose corners step in [steps] blocks of [step], as pixel art draws a rounded box. */
+class PixelShape(private val step: Dp, private val steps: Int) :
+    CornerBasedShape(CornerSize(step * steps), CornerSize(step * steps), CornerSize(step * steps), CornerSize(step * steps)) {
+
+    override fun copy(topStart: CornerSize, topEnd: CornerSize, bottomEnd: CornerSize, bottomStart: CornerSize) = this
+
+    override fun createOutline(size: Size, topStart: Float, topEnd: Float, bottomEnd: Float, bottomStart: Float, layoutDirection: LayoutDirection): Outline {
+        val n = steps
+        val s = topStart / n
+        // The top-left corner, from down the left edge round to along the top.
+        val corner = buildList {
+            for (k in 0 until n) {
+                add(Offset(k * s, (n - k) * s))
+                add(Offset((k + 1) * s, (n - k) * s))
+            }
+            add(Offset(n * s, 0f))
+        }
+        val w = size.width
+        val h = size.height
+        val points = corner +
+            corner.reversed().map { Offset(w - it.x, it.y) } +
+            corner.map { Offset(w - it.x, h - it.y) } +
+            corner.reversed().map { Offset(it.x, h - it.y) }
+        return Outline.Generic(Path().apply {
+            moveTo(points[0].x, points[0].y)
+            points.drop(1).forEach { lineTo(it.x, it.y) }
+            close()
+        })
+    }
+}
+
+private val Condensed = FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
+
 private fun petal(r: Int): CornerBasedShape = RoundedCornerShape(topStart = r.dp, topEnd = (r / 4).dp, bottomEnd = r.dp, bottomStart = (r / 4).dp)
 
 /** The shape of the one main action ([PrimaryPill]) in [skin]. */
@@ -84,6 +127,8 @@ fun pillShape(skin: Skin): Shape = when (skin) {
     Skin.Chalkboard -> RoundedCornerShape(10.dp)
     Skin.Lab -> RoundedCornerShape(4.dp)
     Skin.Sakura -> RoundedCornerShape(topStart = 28.dp, topEnd = 8.dp, bottomEnd = 28.dp, bottomStart = 8.dp)
+    Skin.Frost -> CutCornerShape(topStart = 18.dp, topEnd = 4.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
+    Skin.Arcade -> PixelShape(4.dp, 3)
     Skin.Halloween -> CutCornerShape(16.dp)
 }
 
@@ -115,6 +160,13 @@ internal fun typographyFor(skin: Skin): Typography {
         // A printed, gentle serif.
         Skin.Sakura -> t.headings { it.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Medium) }
         // A heavy old serif, like a horror film's title card.
+        // Tall and narrow, like lettering cut in ice.
+        Skin.Frost -> t.headings { it.copy(fontFamily = Condensed, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp) }
+        // A cabinet's marquee: heavy monospace, spread out.
+        Skin.Arcade -> t.headings { it.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp) }.copy(
+            labelLarge = t.labelLarge.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black),
+            labelMedium = t.labelMedium.copy(fontFamily = FontFamily.Monospace),
+        )
         Skin.Halloween -> t.headings { it.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp) }
     }
 }
@@ -182,6 +234,21 @@ fun Modifier.skinCard(shape: Shape): Modifier {
         }.drawWithContent {
             drawContent()
             blossom(Offset(size.width - 14.dp.toPx(), 14.dp.toPx()), 4.dp.toPx(), colors.primary.copy(alpha = 0.85f))
+        }
+        // Frosted: an icy edge, a sheen across the top, and a crystal grown in the bottom corner.
+        Skin.Frost -> drawWithContent {
+            drawContent()
+            val outline = shape.createOutline(size, layoutDirection, this)
+            drawOutline(outline, Brush.verticalGradient(listOf(Color.White.copy(alpha = if (dark) 0.10f else 0.5f), Color.Transparent), endY = size.height * 0.35f))
+            drawOutline(outline, colors.primary.copy(alpha = 0.6f), style = Stroke(1.2.dp.toPx()))
+            likeBit(Skin.Frost, Offset(14.dp.toPx(), size.height - 14.dp.toPx()), 6.dp.toPx(), 0f, colors.primary.copy(alpha = 0.7f))
+        }
+        // A cabinet button: a hard block shadow in pixels and a bright edge.
+        Skin.Arcade -> drawBehind {
+            translate(4.dp.toPx(), 4.dp.toPx()) { drawOutline(shape.createOutline(size, layoutDirection, this), colors.primary.copy(alpha = if (dark) 0.35f else 0.45f)) }
+        }.drawWithContent {
+            drawContent()
+            drawOutline(shape.createOutline(size, layoutDirection, this), colors.primary.copy(alpha = 0.85f), style = Stroke(2.dp.toPx()))
         }
         // A pumpkin-glow edge and a cobweb in the top corner.
         Skin.Halloween -> drawWithContent {
@@ -282,6 +349,28 @@ fun SkinHeading(title: String, modifier: Modifier = Modifier, end: @Composable (
                 Spacer(Modifier.width(8.dp))
                 Text(title, style = type.titleLarge.copy(fontStyle = FontStyle.Italic), modifier = Modifier.weight(1f))
             }
+            Skin.Frost -> {
+                Text("❄", style = type.titleLarge, color = colors.primary)
+                Spacer(Modifier.width(8.dp))
+                Text(title, style = type.titleLarge, modifier = Modifier.weight(1f))
+            }
+            Skin.Arcade -> {
+                Text("▶", style = type.titleMedium, color = colors.primary)
+                Spacer(Modifier.width(8.dp))
+                Text(title.uppercase(), style = type.titleMedium)
+                Spacer(Modifier.width(10.dp))
+                Box(
+                    Modifier.weight(1f).height(4.dp).drawBehind {
+                        val sq = 4.dp.toPx()
+                        var x = 0f
+                        while (x < size.width) {
+                            drawRect(colors.primary.copy(alpha = 0.5f), Offset(x, 0f), Size(sq, sq))
+                            x += sq * 2
+                        }
+                    },
+                )
+                Spacer(Modifier.width(8.dp))
+            }
             Skin.Halloween -> {
                 Text("☾", style = type.titleLarge, color = colors.primary)
                 Spacer(Modifier.width(8.dp))
@@ -327,6 +416,24 @@ fun DrawScope.likeBit(skin: Skin, c: Offset, r: Float, turn: Float, color: Color
             }
             Skin.Lab -> drawCircle(color, r * 0.7f, c, style = Stroke(w))
             Skin.Sakura -> drawOval(color, topLeft = c - Offset(r, r * 0.55f), size = Size(2 * r, 1.1f * r))
+            // A shard of ice: a long thin diamond.
+            Skin.Frost -> {
+                val p = Path().apply {
+                    moveTo(c.x, c.y - r)
+                    lineTo(c.x + r * 0.32f, c.y)
+                    lineTo(c.x, c.y + r)
+                    lineTo(c.x - r * 0.32f, c.y)
+                    close()
+                }
+                drawPath(p, color)
+            }
+            // An 8-bit sparkle: a plus of pixels.
+            Skin.Arcade -> {
+                val px = r * 0.4f
+                listOf(Offset(0f, 0f), Offset(px, 0f), Offset(-px, 0f), Offset(0f, px), Offset(0f, -px)).forEach { o ->
+                    drawRect(color, c + o - Offset(px / 2, px / 2), Size(px, px))
+                }
+            }
             Skin.Halloween -> bat(c, r * 0.4f, color)
         }
     }
@@ -432,6 +539,51 @@ fun SkinBackdrop(modifier: Modifier = Modifier, night: Boolean = false) {
                     }
                 }
             }
+            Skin.Frost -> {
+                // Frost grown in from the top corners, snow falling, and a drift along the bottom.
+                val ice = (if (dark) ink else colors.primary).copy(alpha = if (dark) 0.16f else 0.28f)
+                frostCorner(Offset(0f, 0f), 1f, 110.dp.toPx(), ice)
+                frostCorner(Offset(w, 0f), -1f, 90.dp.toPx(), ice)
+                scatter.forEach { (p, s) ->
+                    drawCircle((if (dark) ink else colors.primary).copy(alpha = (if (dark) 0.18f else 0.25f) + 0.3f * s), (1f + 2.2f * s).dp.toPx(), Offset(p.x * w, p.y * h))
+                }
+                val drift = Path().apply {
+                    moveTo(0f, h)
+                    lineTo(0f, h * 0.9f)
+                    quadraticTo(w * 0.25f, h * 0.84f, w * 0.5f, h * 0.89f)
+                    quadraticTo(w * 0.78f, h * 0.94f, w, h * 0.86f)
+                    lineTo(w, h)
+                    close()
+                }
+                drawPath(drift, (if (dark) ink else colors.primary).copy(alpha = if (dark) 0.05f else 0.08f))
+            }
+            Skin.Arcade -> {
+                // A synthwave floor running off to the horizon, pixel stars over it, and the faint
+                // scanlines of an old screen over everything.
+                val horizon = h * 0.7f
+                val grid = colors.primary.copy(alpha = if (dark) 0.22f else 0.3f)
+                drawRect(Brush.verticalGradient(listOf(Color.Transparent, colors.primary.copy(alpha = if (dark) 0.12f else 0.1f)), startY = horizon - 60.dp.toPx(), endY = horizon), Offset(0f, horizon - 60.dp.toPx()), Size(w, 60.dp.toPx()))
+                var gap = 6.dp.toPx()
+                var y = horizon
+                while (y < h) {
+                    drawLine(grid, Offset(0f, y), Offset(w, y), 1.dp.toPx())
+                    y += gap
+                    gap *= 1.35f
+                }
+                for (k in -8..8) {
+                    drawLine(grid, Offset(w / 2 + k * w * 0.02f, horizon), Offset(w / 2 + k * w * 0.22f, h), 1.dp.toPx())
+                }
+                scatter.take(26).forEach { (p, s) ->
+                    val sq = (2 + 2 * (s * 2).toInt()).dp.toPx() / 2
+                    drawRect(ink.copy(alpha = if (dark) 0.25f + 0.3f * s else 0.12f + 0.12f * s), Offset(p.x * w, p.y * horizon * 0.9f), Size(sq, sq))
+                }
+                val line = 4.dp.toPx()
+                var sy = 0f
+                while (sy < h) {
+                    drawLine(ink.copy(alpha = if (dark) 0.03f else 0.025f), Offset(0f, sy), Offset(w, sy), 1f)
+                    sy += line
+                }
+            }
             Skin.Halloween -> {
                 // A full moon behind the top corner, a cobweb in the other, bats, and a dark edge.
                 val moon = Offset(w + 4.dp.toPx(), -4.dp.toPx())
@@ -449,6 +601,24 @@ fun SkinBackdrop(modifier: Modifier = Modifier, night: Boolean = false) {
 
 private val SummerSea = Color(0xFF2FA4C8)
 private val HalloweenMoon = Color(0xFFFFD27A)
+
+/** Frost creeping in from a corner at [c]: a few branching ice ferns, [dir] 1 rightwards, -1 leftwards. */
+private fun DrawScope.frostCorner(c: Offset, dir: Float, r: Float, color: Color) {
+    val w = 1.2.dp.toPx()
+    listOf(0.12, 0.42, 0.75, 1.15).forEach { a ->
+        val end = c + Offset(dir * (r * cos(a)).toFloat(), (r * sin(a)).toFloat())
+        drawLine(color, c, end, w, StrokeCap.Round)
+        for (k in 1..4) {
+            val f = k / 5f
+            val at = c + (end - c) * f
+            val len = r * 0.16f * (1f - f * 0.6f)
+            for (side in listOf(-1, 1)) {
+                val b = a + side * 0.6
+                drawLine(color, at, at + Offset(dir * (len * cos(b)).toFloat(), (len * sin(b)).toFloat()), w * 0.8f, StrokeCap.Round)
+            }
+        }
+    }
+}
 
 /** A bat in flight: two scalloped wings and a small body. */
 private fun DrawScope.bat(c: Offset, s: Float, color: Color) {

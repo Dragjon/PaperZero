@@ -139,9 +139,9 @@ private fun studyingStrokes(skin: Skin): List<ChalkStroke> {
     // Body, sat on the stool, and head leaning in towards the book.
     add(wobblyLoop(76f, 124f, 35f, 33f, 11), 3.2f)
     add(wobblyLoop(102f, 68f, 27f, 26f, 12), 3.2f)
-    // Twig hair: three on top, swept back a little, one with a fork. Under a mortarboard or a
-    // witch's hat, only the one that pokes out behind.
-    if (skin == Skin.Chalkboard || skin == Skin.Halloween) {
+    // Twig hair: three on top, swept back a little, one with a fork. Under a mortarboard, a
+    // witch's hat or a bobble hat, only the one that pokes out behind.
+    if (skin == Skin.Chalkboard || skin == Skin.Halloween || skin == Skin.Frost) {
         add(curve(86f, 50f, 79f, 45f, 72f, 43f), 2.6f, Ink.Twig)
     } else {
         add(curve(95f, 43f, 90f, 33f, 83f, 24f), 2.6f, Ink.Twig)
@@ -300,6 +300,36 @@ private fun dressed(skin: Skin, add: (Path, Float, Ink) -> Unit) {
                 chalk(wobblyLoop(c.x - 5f, c.y, 3f, 3f, 85 + i), 1.6f)
                 chalk(wobblyLoop(c.x + 5f, c.y - 3f, 2.2f, 2.2f, 88 + i), 1.6f)
                 chalk(curve(c.x - 2f, c.y - 1f, c.x + 3f, c.y - 2.4f), 1.2f)
+            }
+        }
+        Skin.Frost -> {
+            // A knitted bobble hat, ribbed band and all; icicles off the desk; snow, lots of it.
+            accent(curve(80f, 50f, 81f, 32f, 102f, 26f, 123f, 32f, 126f, 50f), 2.8f)
+            accent(curve(79f, 50f, 103f, 56f, 127f, 50f), 2.8f)
+            accent(curve(80f, 44f, 103f, 50f, 126f, 44f), 2.2f)
+            listOf(86f, 94f, 102f, 110f, 118f).forEach { x -> accent(curve(x, 45f + (x - 102f) * 0.02f, x, 52f), 1.4f) }
+            accent(wobblyLoop(103f, 22f, 6.5f, 6f, 111), 2.6f)
+            listOf(140f, 152f, 166f, 180f, 196f, 212f).forEachIndexed { i, x ->
+                chalk(curve(x, 120f, x + 2.5f, 126f + (i % 3) * 3f, x + 5f, 120f), 1.4f)
+            }
+            snowflakes(listOf(Offset(30f, 40f), Offset(160f, 30f), Offset(200f, 60f), Offset(22f, 118f), Offset(56f, 22f), Offset(186f, 22f), Offset(226f, 44f), Offset(14f, 76f)))
+        }
+        Skin.Arcade -> {
+            // Headphones over his head, a cup at his ear, and 8-bit sparkles in the air.
+            accent(curve(91f, 62f, 90f, 40f, 104f, 33f, 120f, 36f, 126f, 50f), 2.8f)
+            accent(wobblyLoop(90f, 68f, 6f, 9f, 121), 3f)
+            accent(wobblyLoop(127f, 54f, 3f, 4.5f, 122), 2.4f)
+            listOf(Offset(30f, 40f), Offset(160f, 30f), Offset(204f, 60f), Offset(22f, 118f)).forEachIndexed { i, c ->
+                val px = if (i % 2 == 0) 3f else 2.4f
+                listOf(Offset(0f, 0f), Offset(px, 0f), Offset(-px, 0f), Offset(0f, px), Offset(0f, -px)).forEach { o ->
+                    val x = c.x + o.x
+                    val y = c.y + o.y
+                    chalk(curve(x - px / 2, y - px / 2, x + px / 2, y - px / 2, x + px / 2, y + px / 2, x - px / 2, y + px / 2, x - px / 2, y - px / 2), 1.2f)
+                }
+            }
+            // A row of hearts up top, an arcade's lives.
+            listOf(48f, 60f, 72f).forEach { x ->
+                accent(curve(x, 24f, x - 4f, 20f, x - 4f, 17f, x - 1.5f, 15.5f, x, 18f, x + 1.5f, 15.5f, x + 4f, 17f, x + 4f, 20f, x, 24f), 1.6f)
             }
         }
         Skin.Halloween -> {

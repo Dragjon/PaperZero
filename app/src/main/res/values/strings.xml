@@ -144,12 +144,14 @@
     <string name="settings_skin">Skin</string>
     <string name="settings_skin_description">The app\'s colours, and what Olaf has on</string>
     <string name="skin_classic">Classic</string>
-    <string name="skin_chalkboard">Chalkboard</string>
+    <string name="skin_chalkboard">Chalk</string>
     <string name="skin_summer">Summer</string>
     <string name="skin_aurora">Aurora</string>
     <string name="skin_lab">Lab</string>
     <string name="skin_sakura">Sakura</string>
     <string name="skin_halloween">Halloween</string>
+    <string name="skin_frost">Frost</string>
+    <string name="skin_arcade">Arcade</string>
     <string name="report">Report</string>
     <string name="trend_title">Accuracy over questions</string>
     <string name="trend_intro">Whether you get more right the more you do.</string>
