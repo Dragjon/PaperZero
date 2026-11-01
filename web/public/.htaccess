@@ -1,0 +1,27 @@
+# PaperZero on Apache (cPanel): the right types, and caching that lets updates through.
+AddType application/manifest+json .webmanifest
+AddType image/webp .webp
+AddType text/javascript .js .mjs
+
+<IfModule mod_headers.c>
+  # Search engines kept out, as robots.txt asks too.
+  Header set X-Robots-Tag "noindex, nofollow"
+  # The page and the service worker always checked, so a new build shows at once.
+  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Built code (its name changes with each build) and fonts kept a year.
+  <FilesMatch "\.(js|css|ttf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # The questions: kept a week (a new pack goes up rarely).
+  <FilesMatch "\.(webp|json)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/json application/manifest+json image/svg+xml
+</IfModule>
+
+Options -Indexes
