@@ -158,11 +158,14 @@
     <string name="calc_shrink">Shrink the calculator</string>
     <string name="calc_scientific">Scientific keys</string>
     <string name="pt_title">Periodic Table</string>
-    <string name="pt_hint">Each box: proton number, symbol, relative atomic mass. Tap one for more.</string>
+    <string name="pt_hint">Each box: proton number, symbol, relative atomic mass. Tap one for more; pinch to zoom.</string>
     <string name="pt_proton">proton number %1$d</string>
     <string name="pt_mass">relative atomic mass %1$s</string>
     <string name="pt_group">group %1$s</string>
     <string name="pt_period">period %1$d</string>
+    <string name="pt_zoom_in">Zoom in</string>
+    <string name="pt_zoom_out">Zoom out</string>
+    <string name="pt_zoom_fit">Fit to screen</string>
     <string name="pt_source">Relative atomic masses as on the O-Level data sheet.</string>
     <string name="pt_alkali">Alkali metals</string>
     <string name="pt_alkaline_earth">Alkaline earth metals</string>
