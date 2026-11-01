@@ -1,5 +1,7 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.skinCard
+import dev.olaf.paperzero.core.design.SkinHeading
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.requiredSize
@@ -338,8 +340,7 @@ private fun Story(subject: Subject, onClick: (Offset, Color) -> Unit) {
 
 @Composable
 private fun SectionHead(title: String, onSeeAll: (() -> Unit)?) {
-    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+    SkinHeading(title, Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 8.dp)) {
         if (onSeeAll != null) TextButton(onClick = onSeeAll) { Text(stringResource(R.string.see_all)) }
     }
 }
@@ -357,7 +358,7 @@ private fun SubjectCard(subject: Subject, progress: SubjectProgress?, onClick: (
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
         interactionSource = interaction,
-        modifier = Modifier.fillMaxWidth().pressScale(interaction),
+        modifier = Modifier.fillMaxWidth().pressScale(interaction).skinCard(MaterialTheme.shapes.extraLarge),
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -222,8 +222,8 @@ fun PaperTheme(
     CompositionLocalProvider(LocalPaperExtras provides extras, LocalSkin provides skin) {
         MaterialTheme(
             colorScheme = scheme,
-            typography = PaperTypography,
-            shapes = PaperShapes,
+            typography = typographyFor(skin),
+            shapes = shapesFor(skin),
         ) {
             // Text and icons drawn straight on a screen's background (not inside a Surface) would
             // otherwise default to black, which vanishes on the dark theme.

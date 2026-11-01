@@ -1,5 +1,6 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.skinCard
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -76,7 +77,7 @@ fun StatsPeek(stats: Stats?, onClick: () -> Unit) {
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
         interactionSource = interaction,
-        modifier = Modifier.fillMaxWidth().pressScale(interaction),
+        modifier = Modifier.fillMaxWidth().pressScale(interaction).skinCard(MaterialTheme.shapes.extraLarge),
     ) {
         Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.Insights, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -193,7 +194,7 @@ fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, I
 
 @Composable
 private fun Card(content: @Composable () -> Unit) {
-    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().skinCard(MaterialTheme.shapes.extraLarge)) {
         Box(Modifier.padding(20.dp)) { content() }
     }
 }
@@ -209,7 +210,7 @@ private fun Head(title: String, hint: String? = null) {
 /** A number to see first, and what it is. */
 @Composable
 private fun Big(value: String, label: String, modifier: Modifier) {
-    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = modifier) {
+    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = modifier.skinCard(MaterialTheme.shapes.extraLarge)) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 16.dp)) {
             Text(value, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
@@ -313,7 +314,7 @@ private fun Science(ss: SubjectStats) {
 private fun Topic(t: TopicStats, showSubject: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val untried = t.tally.answered == 0
-    Surface(shape = MaterialTheme.shapes.large, color = colors.surfaceContainer, modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Surface(shape = MaterialTheme.shapes.large, color = colors.surfaceContainer, modifier = Modifier.fillMaxWidth().skinCard(MaterialTheme.shapes.large).clickable(onClick = onClick)) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

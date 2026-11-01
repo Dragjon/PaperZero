@@ -1,5 +1,6 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.skinCard
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -170,7 +171,7 @@ private fun PaperCard(paper: PaperInfo, title: String, best: dev.olaf.paperzero.
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surfaceContainer,
         interactionSource = interaction,
-        modifier = Modifier.fillMaxWidth().pressScale(interaction),
+        modifier = Modifier.fillMaxWidth().pressScale(interaction).skinCard(MaterialTheme.shapes.extraLarge),
     ) {
         Row(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

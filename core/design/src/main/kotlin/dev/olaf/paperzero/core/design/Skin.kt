@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.lerp
  * Classic is the app as it always was (and the only one the Background setting applies to). Each
  * skin has a light and a dark side, so it follows the Theme setting like the rest of the app.
  */
-enum class Skin { Classic, Chalkboard, Summer, Aurora, Lab, Sakura }
+enum class Skin { Classic, Chalkboard, Summer, Aurora, Lab, Sakura, Halloween }
 
 /** The skin showing, for anything drawn to match it (chalk Olaf). */
 val LocalSkin = staticCompositionLocalOf { Skin.Classic }
@@ -42,6 +42,8 @@ private val Day = mapOf(
     Skin.Lab to SkinColors(0xFF3EC1D3, 0xFF032A30, 0xFFD5F2F6, 0xFF06363D, 0xFFF6F9FA, 0xFF1A2326, 0xFF5A6970),
     // Blossom on white.
     Skin.Sakura to SkinColors(0xFFFF8FB1, 0xFF3A0A1C, 0xFFFFE0EA, 0xFF4A1028, 0xFFFFF6F8, 0xFF2E1F24, 0xFF765E66),
+    // A harvest afternoon: parchment and pumpkin, with plum ink.
+    Skin.Halloween to SkinColors(0xFFF5841F, 0xFF2A1200, 0xFFFFE1C4, 0xFF3D1C00, 0xFFF8F0E6, 0xFF2A1A2E, 0xFF6D5A70),
 )
 
 private val Night = mapOf(
@@ -53,6 +55,8 @@ private val Night = mapOf(
     Skin.Aurora to SkinColors(0xFF5EE6C0, 0xFF04261C, 0xFF1A3340, 0xFFC9FFF0, 0xFF0E1424, 0xFFEAF0FF, 0xFFA3ADC7),
     Skin.Lab to SkinColors(0xFF6ED8E6, 0xFF032A30, 0xFF1C3337, 0xFFCFF6FB, 0xFF121A1C, 0xFFECF4F5, 0xFF9FB0B4),
     Skin.Sakura to SkinColors(0xFFFFA3C0, 0xFF3A0A1C, 0xFF3E2530, 0xFFFFDCE7, 0xFF1E1519, 0xFFF7ECEF, 0xFFBCA6AD),
+    // Halloween night: purple-black, a glowing pumpkin for actions.
+    Skin.Halloween to SkinColors(0xFFFF8A1F, 0xFF2A1200, 0xFF3A2140, 0xFFFFDDBF, 0xFF140E1A, 0xFFF3E9F7, 0xFFB9A6C4),
 )
 
 /**

@@ -1,5 +1,6 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.SkinBackdrop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,7 +84,10 @@ fun SubjectTheme(subject: Subject?, fill: Boolean = true, content: @Composable (
     val scheme = remember(base, p, dark) { base.with(p, dark) }
     MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes) {
         CompositionLocalProvider(LocalContentColor provides scheme.onBackground) {
-            if (fill) Box(Modifier.fillMaxSize().background(scheme.background)) { content() } else content()
+            if (fill) Box(Modifier.fillMaxSize().background(scheme.background)) {
+                SkinBackdrop(Modifier.fillMaxSize())
+                content()
+            } else content()
         }
     }
 }

@@ -1,5 +1,6 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.SkinBackdrop
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -56,6 +57,7 @@ fun StartupScreen() {
         label = "bob",
     )
     BoxWithConstraints(Modifier.fillMaxSize().background(colors.background)) {
+        SkinBackdrop(Modifier.fillMaxSize())
         // Dead center and this size: the same as the drawing on the system splash.
         ChalkOlaf(
             Modifier

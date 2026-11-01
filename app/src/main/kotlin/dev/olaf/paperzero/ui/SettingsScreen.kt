@@ -1,5 +1,7 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.skinCard
+import dev.olaf.paperzero.core.design.SkinHeading
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -178,8 +180,8 @@ private fun Link(icon: ImageVector, title: String, description: String, onClick:
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 8.dp, top = 12.dp))
-    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
+    SkinHeading(title, Modifier.fillMaxWidth().padding(start = 8.dp, top = 12.dp))
+    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().skinCard(MaterialTheme.shapes.extraLarge)) {
         Column(Modifier.padding(vertical = 8.dp)) { content() }
     }
 }
@@ -269,4 +271,5 @@ private fun skinName(skin: Skin) = when (skin) {
     Skin.Aurora -> R.string.skin_aurora
     Skin.Lab -> R.string.skin_lab
     Skin.Sakura -> R.string.skin_sakura
+    Skin.Halloween -> R.string.skin_halloween
 }

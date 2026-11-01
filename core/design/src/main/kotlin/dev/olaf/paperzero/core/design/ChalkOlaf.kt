@@ -139,9 +139,9 @@ private fun studyingStrokes(skin: Skin): List<ChalkStroke> {
     // Body, sat on the stool, and head leaning in towards the book.
     add(wobblyLoop(76f, 124f, 35f, 33f, 11), 3.2f)
     add(wobblyLoop(102f, 68f, 27f, 26f, 12), 3.2f)
-    // Twig hair: three on top, swept back a little, one with a fork. Under a mortarboard, only
-    // the one that pokes out behind.
-    if (skin == Skin.Chalkboard) {
+    // Twig hair: three on top, swept back a little, one with a fork. Under a mortarboard or a
+    // witch's hat, only the one that pokes out behind.
+    if (skin == Skin.Chalkboard || skin == Skin.Halloween) {
         add(curve(86f, 50f, 79f, 45f, 72f, 43f), 2.6f, Ink.Twig)
     } else {
         add(curve(95f, 43f, 90f, 33f, 83f, 24f), 2.6f, Ink.Twig)
@@ -185,8 +185,8 @@ private fun studyingStrokes(skin: Skin): List<ChalkStroke> {
     add(curve(182f, 112f, 190f, 110f, 199f, 112f), 1.4f)
     add(curve(162f, 108f, 168f, 108f, 172f, 110f), 1.4f)
     // A pile of books at the back of the table, their spines facing us, each with a label. In the
-    // lab, a conical flask stands there instead.
-    if (skin != Skin.Lab) listOf(
+    // lab, a conical flask stands there instead; at Halloween, a jack-o'-lantern.
+    if (skin != Skin.Lab && skin != Skin.Halloween) listOf(
         floatArrayOf(208f, 229f, 114f, 106f),
         floatArrayOf(210f, 227f, 106f, 98f),
         floatArrayOf(207f, 228f, 98f, 91f),
@@ -205,6 +205,7 @@ private fun studyingStrokes(skin: Skin): List<ChalkStroke> {
 
 /** What [skin] puts on him, and what drifts in the air around him. */
 private fun dressed(skin: Skin, add: (Path, Float, Ink) -> Unit) {
+    fun twig(path: Path, width: Float) = add(path, width, Ink.Twig)
     fun chalk(path: Path, width: Float) = add(path, width, Ink.Chalk)
     fun accent(path: Path, width: Float) = add(path, width, Ink.Accent)
     fun snowflakes(at: List<Offset>) = at.forEachIndexed { i, c ->
@@ -299,6 +300,37 @@ private fun dressed(skin: Skin, add: (Path, Float, Ink) -> Unit) {
                 chalk(wobblyLoop(c.x - 5f, c.y, 3f, 3f, 85 + i), 1.6f)
                 chalk(wobblyLoop(c.x + 5f, c.y - 3f, 2.2f, 2.2f, 88 + i), 1.6f)
                 chalk(curve(c.x - 2f, c.y - 1f, c.x + 3f, c.y - 2.4f), 1.2f)
+            }
+        }
+        Skin.Halloween -> {
+            // A witch's hat: a wide brim, a tall crooked cone with its tip flopped over, a band.
+            chalk(wobblyLoop(104f, 43f, 32f, 5.5f, 101), 2.8f)
+            chalk(curve(86f, 41f, 94f, 26f, 101f, 12f, 108f, 4f), 2.8f)
+            chalk(curve(122f, 41f, 117f, 28f, 112f, 14f, 108f, 4f), 2.8f)
+            chalk(curve(108f, 4f, 118f, 2f, 126f, 9f), 2.4f)
+            accent(curve(89f, 35f, 104f, 39f, 119f, 35f), 3f)
+            accent(curve(110f, 32f, 112f, 38f), 1.6f)
+            // The jack-o'-lantern on the desk: ribbed, a twig for a stem, a carved face.
+            accent(wobblyLoop(218f, 103f, 12.5f, 10.5f, 102), 2.6f)
+            accent(curve(218f, 93f, 212f, 103f, 218f, 113f), 1.6f)
+            accent(curve(218f, 93f, 224f, 103f, 218f, 113f), 1.6f)
+            twig(curve(218f, 93f, 219f, 88f, 223f, 86f), 2.2f)
+            chalk(curve(211f, 101f, 213f, 98f, 215f, 101f, 211f, 101f), 1.4f)
+            chalk(curve(221f, 101f, 223f, 98f, 225f, 101f, 221f, 101f), 1.4f)
+            chalk(curve(210f, 106f, 213f, 109f, 216f, 107f, 219f, 109f, 222f, 107f, 226f, 106f), 1.4f)
+            // A full moon, bats crossing it and the sky, and a spider on its thread.
+            chalk(wobblyLoop(206f, 44f, 13f, 13f, 103), 2f)
+            chalk(wobblyLoop(202f, 40f, 2.5f, 2f, 104), 1.2f)
+            chalk(wobblyLoop(211f, 49f, 2f, 1.6f, 105), 1.2f)
+            listOf(Triple(198f, 46f, 3.4f), Triple(40f, 36f, 3.8f), Triple(160f, 26f, 3f), Triple(24f, 92f, 2.6f)).forEach { (x, y, b) ->
+                chalk(curve(x - 3 * b, y - 0.4f * b, x - 1.8f * b, y - 1.2f * b, x - 0.8f * b, y - 0.2f * b, x, y + 0.2f * b), 1.6f)
+                chalk(curve(x, y + 0.2f * b, x + 0.8f * b, y - 0.2f * b, x + 1.8f * b, y - 1.2f * b, x + 3 * b, y - 0.4f * b), 1.6f)
+            }
+            chalk(curve(30f, 0f, 30f, 58f), 1f)
+            chalk(wobblyLoop(30f, 61f, 3f, 3.4f, 106), 2.2f)
+            for (k in 0 until 3) {
+                chalk(curve(27f, 59f + k * 2f, 22f, 56f + k * 4f), 1f)
+                chalk(curve(33f, 59f + k * 2f, 38f, 56f + k * 4f), 1f)
             }
         }
         Skin.Sakura -> {

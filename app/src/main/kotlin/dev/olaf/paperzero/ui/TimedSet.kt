@@ -1,5 +1,6 @@
 package dev.olaf.paperzero.ui
 
+import dev.olaf.paperzero.core.design.skinCard
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -71,7 +72,7 @@ fun TimedSetCard(papers: Int, unfinished: Boolean, onStart: () -> Unit) {
         color = colors.secondaryContainer,
         contentColor = colors.onSecondaryContainer,
         interactionSource = interaction,
-        modifier = Modifier.fillMaxWidth().pressScale(interaction),
+        modifier = Modifier.fillMaxWidth().pressScale(interaction).skinCard(MaterialTheme.shapes.extraLarge),
     ) {
         Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Stack(Color(0xFFF7F3EE), colors.primary, shuffle.value, Modifier.size(width = 64.dp, height = 72.dp))

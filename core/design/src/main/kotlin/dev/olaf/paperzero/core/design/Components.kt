@@ -54,7 +54,7 @@ fun Dock(
     val extras = LocalPaperExtras.current
     val shadow = if (extras.dockShadow) Modifier.shadow(6.dp, shape) else Modifier
     Surface(
-        modifier = modifier.then(shadow),
+        modifier = modifier.then(shadow).skinCard(shape),
         shape = shape,
         color = extras.dock,
         border = BorderStroke(1.dp, extras.dockEdge),
@@ -189,13 +189,15 @@ fun PrimaryPill(
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val shape = pillShape(LocalSkin.current)
     Surface(
         onClick = onClick,
         modifier = modifier
             .layoutId(PRIMARY)
             .height(56.dp)
-            .pressScale(interaction),
-        shape = CircleShape,
+            .pressScale(interaction)
+            .skinCard(shape),
+        shape = shape,
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
         interactionSource = interaction,
@@ -227,7 +229,8 @@ fun SheetAction(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .pressScale(interaction),
+            .pressScale(interaction)
+            .skinCard(MaterialTheme.shapes.large),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         interactionSource = interaction,

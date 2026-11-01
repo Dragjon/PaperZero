@@ -1,5 +1,6 @@
 package dev.olaf.paperzero
 
+import dev.olaf.paperzero.core.design.SkinBackdrop
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -95,6 +96,7 @@ class MainActivity : ComponentActivity() {
                     return@SettingsTheme
                 }
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    SkinBackdrop(Modifier.fillMaxSize())
                     val nav = rememberNavController()
                     val onTopic: (Subject, Int) -> Unit = { s, t -> nav.navigate("feed/${s.name}?topic=$t") }
                     // Quick between screens: a short fade, no waiting on the way in.
