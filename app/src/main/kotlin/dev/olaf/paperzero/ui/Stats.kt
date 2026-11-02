@@ -1,6 +1,8 @@
 package dev.olaf.paperzero.ui
 
 import dev.olaf.paperzero.core.design.skinCard
+import dev.olaf.paperzero.core.design.SkinHeading
+import dev.olaf.paperzero.core.data.Rewards
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -50,6 +52,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.olaf.paperzero.R
 import dev.olaf.paperzero.core.data.Progresses
@@ -127,37 +130,11 @@ fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, I
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = navBar.calculateBottomPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Big(studied(s.studiedMs), stringResource(R.string.stats_studied), Modifier.weight(1f))
-                    Big(
-                        s.streak.toString(),
-                        // The best only when it's more than now.
-                        pluralStringResource(R.plurals.stats_streak, s.streak) +
-                            (if (s.longestStreak > s.streak) "\n" + stringResource(R.string.stats_best, s.longestStreak) else ""),
-                        Modifier.weight(1f),
-                    )
-                    Big(
-                        s.tally.percent?.let { "$it%" } ?: "–",
-                        pluralStringResource(R.plurals.stats_answered, s.tally.answered, s.tally.answered),
-                        Modifier.weight(1f),
-                    )
-                }
-            }
-            rewards?.let { r -> item { Records(r) } }
+            item { Overview(rewards ?: Rewards(), s) }
             if (badges.isNotEmpty()) item { BadgesSection(badges) }
             item { Week(s) }
             item { AccuracyTrend(s) }
-            if (s.fixed > 0) {
-                item {
-                    Card {
-                        Text(
-                            pluralStringResource(R.plurals.stats_fixed, s.fixed, s.fixed),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
-            }
+            rewards?.let { r -> item { Records(r) } }
             item { Head(stringResource(R.string.stats_by_science)) }
             items(s.subjects, key = { "s/${it.subject}" }) { ss -> SubjectTheme(ss.subject, fill = false) { Science(ss) } }
 
@@ -204,22 +181,10 @@ private fun Card(content: @Composable () -> Unit) {
 }
 
 @Composable
-internal fun Head(title: String, hint: String? = null) {
-    Column(Modifier.padding(start = 4.dp, top = 12.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
+internal fun Head(title: String, hint: String? = null, top: Dp = 16.dp) {
+    Column(Modifier.padding(start = 4.dp, top = top)) {
+        SkinHeading(title, Modifier.fillMaxWidth())
         if (hint != null) Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** A number to see first, and what it is. */
-@Composable
-internal fun Big(value: String, label: String, modifier: Modifier) {
-    Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = modifier.skinCard(MaterialTheme.shapes.extraLarge)) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 16.dp)) {
-            Text(value, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(4.dp))
-            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, minLines = 2)
-        }
     }
 }
 
