@@ -1,5 +1,9 @@
 package dev.olaf.paperzero.core.data
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -122,6 +126,22 @@ class Progresses(private val pack: Pack, private val dao: PaperDao, private val 
         val zone = ZoneId.systemDefault()
         Stats.of(pack, answers, study, Instant.ofEpochMilli(now()).atZone(zone).toLocalDate(), zone)
     }
+
+    /** XP, level, the run of right answers and today's goal: see [Rewards]. */
+    val rewards: Flow<Rewards> = dao.allAnswers().map { answers ->
+        val zone = ZoneId.systemDefault()
+        Rewards.of(answers, Instant.ofEpochMilli(now()).atZone(zone).toLocalDate(), zone)
+    }.flowOn(Dispatchers.Default)
+
+    /**
+     * Every badge and how close it is: see [Badges]. Worked out when an answer changes, not each
+     * second a feed adds to the time studied, and away from the main thread so a feed stays smooth.
+     */
+    val badges: Flow<List<Badge>> = dao.allAnswers().map { answers ->
+        val zone = ZoneId.systemDefault()
+        val today = Instant.ofEpochMilli(now()).atZone(zone).toLocalDate()
+        Badges.of(Rewards.of(answers, today, zone), Stats.of(pack, answers, dao.study().first(), today, zone))
+    }.flowOn(Dispatchers.Default).distinctUntilChanged()
 
     /** Marks the sitting: right answers out of its questions. */
     suspend fun finish(sessionId: Long): Best {

@@ -110,6 +110,8 @@ fun StatsPeek(stats: Stats?, onClick: () -> Unit) {
 @Composable
 fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, Int) -> Unit) {
     val stats by progresses.stats.collectAsState(initial = null)
+    val rewards by progresses.rewards.collectAsState(initial = null)
+    val badges by progresses.badges.collectAsState(initial = emptyList())
     val s = stats
     Column(Modifier.fillMaxSize()) {
         TopBar(stringResource(R.string.stats), null, onBack)
@@ -142,6 +144,8 @@ fun StatsScreen(progresses: Progresses, onBack: () -> Unit, onTopic: (Subject, I
                     )
                 }
             }
+            rewards?.let { r -> item { Records(r) } }
+            if (badges.isNotEmpty()) item { BadgesSection(badges) }
             item { Week(s) }
             item { AccuracyTrend(s) }
             if (s.fixed > 0) {
@@ -200,7 +204,7 @@ private fun Card(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Head(title: String, hint: String? = null) {
+internal fun Head(title: String, hint: String? = null) {
     Column(Modifier.padding(start = 4.dp, top = 12.dp)) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         if (hint != null) Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -209,7 +213,7 @@ private fun Head(title: String, hint: String? = null) {
 
 /** A number to see first, and what it is. */
 @Composable
-private fun Big(value: String, label: String, modifier: Modifier) {
+internal fun Big(value: String, label: String, modifier: Modifier) {
     Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer, modifier = modifier.skinCard(MaterialTheme.shapes.extraLarge)) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 16.dp)) {
             Text(value, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)

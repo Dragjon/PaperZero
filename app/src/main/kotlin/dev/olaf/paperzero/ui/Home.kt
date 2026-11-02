@@ -81,8 +81,8 @@ import dev.olaf.paperzero.core.data.SubjectProgress
 import dev.olaf.paperzero.core.design.Dock
 import dev.olaf.paperzero.core.design.DockAction
 import dev.olaf.paperzero.core.design.DockFade
+import dev.olaf.paperzero.core.data.Badges
 import dev.olaf.paperzero.core.design.ChalkOlaf
-import dev.olaf.paperzero.core.design.LocalPaperExtras
 import dev.olaf.paperzero.core.design.PrimaryPill
 import dev.olaf.paperzero.core.design.SheetAction
 import dev.olaf.paperzero.core.design.pressScale
@@ -121,7 +121,9 @@ fun HomeScreen(
     val liked by progresses.liked.collectAsState(initial = emptyList())
     val commented by progresses.commented.collectAsState(initial = emptyList())
     val comments by progresses.comments.collectAsState(initial = emptyMap())
-    val subjects = Subject.entries.filter { s -> pack.papers.any { it.subject == s } }
+    val rewards by progresses.rewards.collectAsState(initial = null)
+    val badges by progresses.badges.collectAsState(initial = emptyList())
+    val subjects =Subject.entries.filter { s -> pack.papers.any { it.subject == s } }
     var choosing by rememberSaveable { mutableStateOf(false) }
     val statusBar = WindowInsets.statusBars.asPaddingValues()
     val navBar = WindowInsets.navigationBars.asPaddingValues()
@@ -202,6 +204,9 @@ fun HomeScreen(
                     ) {
                         subjects.forEach { s -> SubjectTheme(s, fill = false) { Story(s) { at, colour -> if (entering == null) entering = Entering(s, at, colour) } } }
                     }
+                }
+                rewards?.let { r ->
+                    item { Box(Modifier.padding(horizontal = 16.dp)) { RewardsCard(r, stats?.streak ?: 0, Badges.next(badges)) { choosing = true } } }
                 }
                 item { Box(Modifier.padding(horizontal = 16.dp)) { StatsPeek(stats, onStats) } }
                 item { SectionHead(stringResource(R.string.liked), if (likedHere.isNotEmpty()) { { onSaved(SavedTab.Liked) } } else null) }
@@ -388,7 +393,7 @@ private fun SubjectCard(subject: Subject, progress: SubjectProgress?, onClick: (
             val p = progress
             if (p != null && p.tried > 0) {
                 Spacer(Modifier.height(16.dp))
-                // How much of the subject has been tried; the right answers are the green part.
+                // How much of the subject has been tried; the right answers are the part in the science's colour.
                 Box {
                     LinearProgressIndicator(
                         progress = { p.tried.toFloat() / p.total.coerceAtLeast(1) },
@@ -401,7 +406,7 @@ private fun SubjectCard(subject: Subject, progress: SubjectProgress?, onClick: (
                     LinearProgressIndicator(
                         progress = { p.right.toFloat() / p.total.coerceAtLeast(1) },
                         modifier = Modifier.fillMaxWidth().height(6.dp),
-                        color = LocalPaperExtras.current.success,
+                        color = MaterialTheme.colorScheme.primary,
                         trackColor = Color.Transparent,
                         strokeCap = StrokeCap.Round,
                         drawStopIndicator = {},

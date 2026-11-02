@@ -142,9 +142,9 @@ private sealed interface Page {
 }
 
 /** The feed's ink: white on its black, as a phone's reels are. */
-private val Ink = Color.White
+internal val Ink = Color.White
 private val InkSoft = Color.White.copy(alpha = 0.72f)
-private val Glass = Color.White.copy(alpha = 0.14f)
+internal val Glass = Color.White.copy(alpha = 0.14f)
 
 /**
  * Questions as a feed, one to a screen, swiped up for the next, on black: the question's picture,
@@ -163,6 +163,8 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
     val chosen = remember { mutableStateMapOf<Int, Char>() }
     val liked by progresses.liked.collectAsState(initial = emptyList())
     val comments by progresses.comments.collectAsState(initial = emptyMap())
+    val rewards by progresses.rewards.collectAsState(initial = null)
+    val badges by progresses.badges.collectAsState(initial = null)
     var zoomed by remember { mutableStateOf<String?>(null) }
     var commenting by remember { mutableStateOf<Question?>(null) }
     var reporting by remember { mutableStateOf<Pair<Question, String>?>(null) }
@@ -371,6 +373,7 @@ fun FeedScreen(pack: Pack, progresses: Progresses, source: FeedSource, onClose: 
                     Text(stringResource(R.string.scroll_score, right, tried), style = MaterialTheme.typography.titleMedium, color = InkSoft, modifier = Modifier.padding(end = 12.dp))
                 }
             }
+            RewardOverlay(rewards, badges)
             if (calculating) FloatingCalculator { calculating = false }
         }
     }
